@@ -175,8 +175,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     # Enable GPU growth in your main process
-    # enable_tf_gpu_growth()
-    tf_config = tf.ConfigProto()
-    tf_config.gpu_options.allow_growth = True
-    sess = tf.Session(config=tf_config)
+    enable_tf_gpu_growth()
     main()
