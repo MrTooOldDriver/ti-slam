@@ -1,4 +1,4 @@
-FROM nvcr.io/nvidia/tensorflow:22.12-tf2-py3
+FROM nvcr.io/nvidia/tensorflow:20.12-tf2-py3
 
 ENV TZ=Europe/London
 
