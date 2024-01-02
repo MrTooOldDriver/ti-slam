@@ -28,3 +28,8 @@ RUN pip3 install --no-cache-dir \
 
 RUN pip3 install --no-cache-dir \
     numpy==1.21.0
+
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    libsm6 \
+    libxext6
