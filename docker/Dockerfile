@@ -24,4 +24,7 @@ RUN pip3 install --no-cache-dir \
     flwr[simulation] \
     flwr-datasets[vision] \
     tensorflow-probability==0.7 \
-    keras-mdn-layer==0.2.2 \
+    keras-mdn-layer==0.2.2
+
+RUN pip3 install --no-cache-dir \
+    numpy==1.21.0
