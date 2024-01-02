@@ -1,6 +1,6 @@
 Build image with
 
-docker build .\docker\ 
+docker build .\docker\ -t ti_slam
 
 Run image with
 
