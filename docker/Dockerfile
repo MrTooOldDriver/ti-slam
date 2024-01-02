@@ -12,9 +12,11 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev
 
+RUN python -m pip install --upgrade pip
+
 RUN pip3 install --no-cache-dir \
     keras==2.3.1 \
-    scipy==1.1.0 \
+    scipy \
     matplotlib \
     opencv-python
 
