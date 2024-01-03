@@ -23,7 +23,7 @@ from keras import backend as K
 from networks import build_neural_odometry
 from data_tools import load_odom_data, load_data_multi_timestamp
 
-K.set_image_dim_ordering('tf')
+K.set_image_data_format('channels_last') # changed for version issue
 K.set_session(K.tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)))  #
 K.set_learning_phase(0)  # Run testing mode
 
