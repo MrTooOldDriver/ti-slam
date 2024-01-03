@@ -29,11 +29,11 @@ nn_opt:
 os_odom_test:
     model: neural_odometry # neural_loop_closure
     dataset: turtle # turtle (robot), handheld
-    saved_dir_h5: '/root/workspace/datasets/MilliVO/h5_thermal_rgb_large' # Replace with your data directory (respective odometry folder)
+    saved_dir_h5: '/ti-slam/Dataset/In-house_ground_robot/odometry' # Replace with your data directory (respective odometry folder)
     gap: 5
     imu_length: 20
     n_mixture: 10
-    test_dir: val
+    test_dir: test # was "val" originally 
 
 # Set 3
 training_opt:
@@ -81,7 +81,7 @@ loop_robot_data:
         - 2019-11-22-10-14-01
         - 2019-11-22-10-10-00
 
-- 2019-10-24-18-22-33 # test robot only include loop
+        - 2019-10-24-18-22-33 # test robot only include loop
         - 2019-11-23-15-54-25
         - 2019-11-23-15-52-53
         - 2019-11-23-15-59-12
