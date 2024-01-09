@@ -99,7 +99,7 @@ training_opt:
         adjacent_frame: 36
         descriptor_size: 128 # for std: 128. for netvlad: 1024, 512
         epoch: 200
-        batch_size: 3
+        batch_size: 2
 
 # Set 4
 os_test_embed:
