@@ -2,11 +2,18 @@ import os
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+
+import tensorflow as tf
+tf_config=tf.compat.v1.ConfigProto()
+tf_config.gpu_options.allow_growth=True
+sess = tf.compat.v1.Session(config=tf_config)
+
 import numpy as np
 np.random.seed(0)
+
 from pylab import *
-from keras.optimizers import Adam
-from keras.callbacks import TensorBoard, ModelCheckpoint
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from networks import base_network, build_neural_embedding
 from data_tools import get_positive_negative_samples, get_image
 from os.path import join, dirname

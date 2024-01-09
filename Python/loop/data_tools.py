@@ -1,4 +1,4 @@
-from scipy import misc
+from matplotlib.pyplot import imread
 import numpy as np
 import cv2
 
@@ -27,7 +27,7 @@ def get_positive_negative_samples_subt(loop_path,  exp_folder):
     return pos_data, neg_data
 
 def get_image(img_path):
-    img = misc.imread(img_path)  # load raw radiometric data
+    img = imread(img_path)  # load raw radiometric data
     img = img.astype('float32')
     # normalize thermal value using min-max-mean from odometry
     img = (img - 21828.0) * 1.0 / (26043.0 - 21828.0)
@@ -38,7 +38,7 @@ def get_image(img_path):
     return img
 
 def get_image_subt(img_path):
-    img = misc.imread(img_path)  # load raw radiometric data
+    img = imread(img_path)  # load raw radiometric data
     img = img.astype('float32')
     # normalize thermal value using min-max-mean from odometry
     img = (img - 21386.0) * 1.0 / (26043.0 - 21386.0) # 21386.0,64729.0
@@ -49,7 +49,7 @@ def get_image_subt(img_path):
     return img
 
 def get_image_washington(img_path):
-    img = misc.imread(img_path)  # load raw radiometric data
+    img = imread(img_path)  # load raw radiometric data
     img = img.astype('float32')
     dsize = (640, 512)
     img = cv2.resize(img, dsize)
@@ -63,7 +63,7 @@ def get_image_washington(img_path):
     return img
 
 def get_image_14bit(img_path):
-    img = misc.imread(img_path)  # load raw radiometric data
+    img = imread(img_path)  # load raw radiometric data
     img = img.astype('float32')
     # normalize thermal value using min-max-mean from odometry
     img = (img - 21828.0) * 1.0 / (26043.0 - 21828.0)

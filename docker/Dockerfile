@@ -10,12 +10,14 @@ RUN apt-get update && apt-get install -y \
     python3-pil.imagetk \
     libsm6 \
     libxext6 \
-    libxrender-dev
+    libxrender-dev \
+    ffmpeg
 
 RUN python -m pip install --upgrade pip
 
 RUN pip3 install --no-cache-dir \
-    keras==2.3.1 \
+    tensorflow==2.3.1 \
+    keras==2.4.0 \
     scipy \
     matplotlib \
     opencv-python
@@ -24,12 +26,11 @@ RUN pip3 install --no-cache-dir \
     flwr[simulation] \
     flwr-datasets[vision] \
     tensorflow-probability==0.7 \
-    keras-mdn-layer==0.2.2
+    keras-mdn-layer
+
+# tensorflow-probability==0.7 might have issue?
 
 RUN pip3 install --no-cache-dir \
     numpy==1.21.0
 
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    libsm6 \
-    libxext6
+RUN

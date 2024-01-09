@@ -4,34 +4,17 @@ Network definitions
 
 import numpy as np
 np.random.seed(0)
-import matplotlib.pyplot as plt
-from pylab import *
-import keras
-from keras.models import Sequential
-from keras.optimizers import Adam
-from keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
-from keras.models import Model
-from keras.datasets import mnist
+from tensorflow import keras
+from tensorflow.keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
+from tensorflow.keras import Model
+from tensorflow.keras.layers import MaxPooling2D, GlobalMaxPooling2D
+from tensorflow.keras.layers import Concatenate
+from tensorflow.keras.layers import Lambda, Flatten, Dense, Reshape
 
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D, GlobalMaxPooling2D
-from keras.layers.merge import Concatenate
-from keras.layers.core import Lambda, Flatten, Dense, Reshape
-from keras.initializers import glorot_uniform,he_uniform
-
-from keras.applications.resnet50 import ResNet50
-from keras.applications.densenet import DenseNet121
-from keras.engine.topology import Layer
-from keras.regularizers import l2
-from keras import backend as K
-
-# from keras.backend import l2_normalize, expand_dims, variable, constant
-from keras.utils import plot_model, normalize
-import tensorflow as tf
-import numpy as np
-from keras import initializers, layers
-from keras.layers import Conv2D
-
+from tensorflow.keras.applications.resnet50 import ResNet50
+from tensorflow.keras.layers import Layer
+from tensorflow.keras.regularizers import l2
+from tensorflow.keras import backend as K
 
 def base_network(input_size, descriptor_size, trainable=False):
     '''
@@ -43,7 +26,7 @@ def base_network(input_size, descriptor_size, trainable=False):
     base_model = ResNet50(input_shape=input_size, weights='imagenet', include_top=False)
     # base_model.trainable = trainable
 
-    x = GlobalMaxPooling2D(name='global_max_1')(base_model.get_layer('activation_49').output)
+    x = GlobalMaxPooling2D(name='global_max_1')(base_model.get_layer('conv5_block3_out').output)
     # x = GlobalMaxPooling2D(name='global_max_1')(base_model.get_layer('block4_pool').output)
     x = Dense(descriptor_size * 4, kernel_regularizer=l2(1e-3), activation='relu', kernel_initializer='he_uniform', name='dense_descriptor_1')(x)
     x = Dense(descriptor_size * 2, kernel_regularizer=l2(1e-3), activation='relu', kernel_initializer='he_uniform', name='dense_descriptor_2')(x)
