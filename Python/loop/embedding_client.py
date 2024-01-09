@@ -84,23 +84,24 @@ def model_setup():
     network_train.summary()
     return network_train
 
-class EmbeddingClient(fl.client.Client):
+class EmbeddingClient(fl.client.NumpyClient):
 
-    def __init__(self, cid: str,train_set_start, train_set_end, val_set_start, val_set_end, log_progress: bool = False):
+    def __init__(self, cid: str, client_index, log_progress: bool = False):
         self.cid = cid
         self.log_progress = log_progress
         self.model = model_setup()
-        self.train_set_start = train_set_start
-        self.train_set_end = train_set_end
-        self.val_set_start = val_set_start
-        self.val_set_end = val_set_end
+        self.index = client_index # 0 to n=total number of clients
+        self.train_size = 2
+        self.val_size = 1
 
-    def get_parameters(self, config):
+    def get_parameters(self):
         return self.model.get_weights()
-
     
-    def fit(self, parameters, config):
-        self.model.set_weights(parameters)
+    def set_parameters(self, parameters):
+        return self.model.set_weights(parameters)
+    
+    def fit(self, parameters):
+        self.set_parameters(parameters)
         with open(join(currentdir, 'config.yaml'), 'r') as f:
             cfg = yaml.load(f)
 
@@ -109,13 +110,13 @@ class EmbeddingClient(fl.client.Client):
             dataroot = cfg['handheld_data']['dataroot']
             loop_path = cfg['handheld_data']['loop_path']
             all_experiments = cfg['handheld_data']['all_exp_files']
-            training_experiments = all_experiments[self.train_set_start:self.train_set_end]
+            training_experiments = all_experiments[index*train_size:(index+1)*train_size]
             n_training = len(training_experiments)
         else:
             dataroot = cfg['robot_data']['dataroot']
             loop_path = cfg['robot_data']['loop_path']
             all_experiments = cfg['robot_data']['all_exp_files']
-            training_experiments = all_experiments[self.train_set_start:self.train_set_end]
+            training_experiments = all_experiments[index*train_size:(index+1)*train_size]
             n_training = len(training_experiments)
 
         MODEL_NAME = cfg['training_opt']['thermal_params']['nn_name']
@@ -139,11 +140,12 @@ class EmbeddingClient(fl.client.Client):
             os.remove(checkpoint_path)
         checkpointer = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', mode='min', save_best_only=True,
                                     verbose=1)
-        tensor_board = TensorBoard(log_dir=join(model_dir, 'logs'))
+        tensor_board = TensorBoard(log_dir=join(model_dir, self.cid, 'logs'))
 
         # === Load validation triplets ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
-        validation_experiments = all_experiments[self.val_set_start:self.val_set_end]
+        val_starting = cfg['robot_data']['total_training']
+        validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validatio size: ', np.shape(validation_triplets))
 
@@ -208,4 +210,4 @@ class EmbeddingClient(fl.client.Client):
                         self.model.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1) # Train on batch
 
             if ((e % 10) == 0):
-                self.model.save(join(model_dir, str(e).format('h5')))
+                self.model.save(join(model_dir, self.cid, str(e).format('h5')))
