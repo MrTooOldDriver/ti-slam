@@ -86,7 +86,7 @@ def model_setup():
 
 class EmbeddingClient(fl.client.Client):
 
-    def __init__(self, cid: str, log_progress: bool = False, train_set_start, train_set_end, val_set_start, val_set_end):
+    def __init__(self, cid: str,train_set_start, train_set_end, val_set_start, val_set_end, log_progress: bool = False):
         self.cid = cid
         self.log_progress = log_progress
         self.model = model_setup()
