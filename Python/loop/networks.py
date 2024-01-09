@@ -65,8 +65,8 @@ class TripletLossLayerKL(Layer):
 
     def triplet_loss(self, inputs):
         anchor, positive, negative = inputs
-        p_dist = keras.losses.kullback_leibler_divergence(anchor, positive)
-        n_dist = keras.losses.kullback_leibler_divergence(anchor, negative)
+        p_dist = keras.losses.kl_divergence(anchor, positive)
+        n_dist = keras.losses.kl_divergence(anchor, negative)
         return K.sum(K.maximum(p_dist - n_dist + self.alpha, 0), axis=0)
 
     def call(self, inputs):
