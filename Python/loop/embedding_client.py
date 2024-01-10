@@ -26,8 +26,12 @@ parentdir = os.path.dirname(currentdir)
 import flwr as fl
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesIns, GetPropertiesRes, GetParametersIns, \
     GetParametersRes, Status, Code, parameters_to_ndarrays, ndarrays_to_parameters
+from flwr.common import Metrics
+# from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
+from typing import Dict, List, Tuple
 
-
+NUM_CLIENTS = 0
+NUM_ROUNDS = 2
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c, adjacent_frame):
     # Reserve the validation stack data
     total_val_length = 0
@@ -84,15 +88,17 @@ def model_setup():
     network_train.summary()
     return network_train
 
-class EmbeddingClient(fl.client.NumpyClient):
+class EmbeddingClient(fl.client.NumPyClient):
 
-    def __init__(self, cid: str, client_index, log_progress: bool = False):
+    def __init__(self, cid: str, log_progress: bool = False):
         self.cid = cid
         self.log_progress = log_progress
         self.model = model_setup()
-        self.index = client_index # 0 to n=total number of clients
         self.train_size = 2
         self.val_size = 1
+        self.index = nun_clients
+        NUM_CLIENTS = NUM_CLIENTS + 1
+        
 
     def get_parameters(self):
         return self.model.get_weights()
@@ -211,3 +217,126 @@ class EmbeddingClient(fl.client.NumpyClient):
 
             if ((e % 10) == 0):
                 self.model.save(join(model_dir, self.cid, str(e).format('h5')))
+        return self.model.get_weights()
+    
+    def evaluate(self, parameters, config):
+        with open(join(currentdir, 'config.yaml'), 'r') as f:
+            cfg = yaml.load(f)
+
+        datatype = cfg['training_opt']['dataset'] # handheld or turtle (the robot)
+        if datatype == 'handheld':
+            dataroot = cfg['handheld_data']['dataroot']
+            loop_path = cfg['handheld_data']['loop_path']
+            all_experiments = cfg['handheld_data']['all_exp_files']
+        else:
+            dataroot = cfg['robot_data']['dataroot']
+            loop_path = cfg['robot_data']['loop_path']
+            all_experiments = cfg['robot_data']['all_exp_files']
+
+        MODEL_NAME = cfg['training_opt']['thermal_params']['nn_name']
+        lr_rate = cfg['training_opt']['thermal_params']['lr_rate']
+        decay = cfg['training_opt']['thermal_params']['decay']
+        margin_loss = cfg['training_opt']['thermal_params']['margin_loss']
+        img_h = cfg['training_opt']['thermal_params']['img_h']
+        img_w = cfg['training_opt']['thermal_params']['img_w']
+        img_c = cfg['training_opt']['thermal_params']['img_c']
+        adjacent_frame = cfg['training_opt']['thermal_params']['adjacent_frame']
+        descriptor_size = cfg['training_opt']['thermal_params']['descriptor_size']
+        n_epoch = cfg['training_opt']['thermal_params']['epoch']
+        batch_size = cfg['training_opt']['thermal_params']['batch_size']
+        input_size = (img_h, img_w, img_c)
+        # === Load validation triplets ===
+        # Validation files are the same with test file as we dont use it to learn any hyperparameters
+        val_starting = cfg['robot_data']['total_training']
+        validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
+        validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
+        print('Validation size: ', np.shape(validation_triplets))                
+        self.model.set_weights(parameters)
+        loss = self.model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
+        return loss, len(validation_triplets), {"loss": loss}
+    
+
+def get_client_fn():
+    def client_fn(cid:str):
+        return EmbeddingClient(cid)
+    return client_fn
+
+def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
+    losses = [num_examples * m["loss"] for num_examples, m in metrics]
+    examples = [num_examples for num_examples, _ in metrics]
+
+    # Aggregate and return custom metric (weighted average)
+    return {"loss": sum(losses) / sum(examples)}    
+
+def get_evaluate_fn():
+    def evaluate():
+
+        with open(join(currentdir, 'config.yaml'), 'r') as f:
+            cfg = yaml.load(f)
+
+        datatype = cfg['training_opt']['dataset'] # handheld or turtle (the robot)
+        if datatype == 'handheld':
+            dataroot = cfg['handheld_data']['dataroot']
+            loop_path = cfg['handheld_data']['loop_path']
+            all_experiments = cfg['handheld_data']['all_exp_files']
+        else:
+            dataroot = cfg['robot_data']['dataroot']
+            loop_path = cfg['robot_data']['loop_path']
+            all_experiments = cfg['robot_data']['all_exp_files']
+
+        MODEL_NAME = cfg['training_opt']['thermal_params']['nn_name']
+        lr_rate = cfg['training_opt']['thermal_params']['lr_rate']
+        decay = cfg['training_opt']['thermal_params']['decay']
+        margin_loss = cfg['training_opt']['thermal_params']['margin_loss']
+        img_h = cfg['training_opt']['thermal_params']['img_h']
+        img_w = cfg['training_opt']['thermal_params']['img_w']
+        img_c = cfg['training_opt']['thermal_params']['img_c']
+        adjacent_frame = cfg['training_opt']['thermal_params']['adjacent_frame']
+        descriptor_size = cfg['training_opt']['thermal_params']['descriptor_size']
+        n_epoch = cfg['training_opt']['thermal_params']['epoch']
+        batch_size = cfg['training_opt']['thermal_params']['batch_size']
+        input_size = (img_h, img_w, img_c)
+        # === Load validation triplets ===
+        # Validation files are the same with test file as we dont use it to learn any hyperparameters
+        val_starting = cfg['robot_data']['total_training']
+        validation_experiments = all_experiments[val_starting] # dir/file names for validation
+        validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
+        print('Validation size: ', np.shape(validation_triplets))                
+        self.model.set_weights(parameters)
+        loss = self.model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
+        return loss, {"loss": loss} 
+    return evaluate
+       
+def main():
+    strategy = fl.server.strategy.FedAvg(
+        fraction_fit=1,  # Sample 10% of available clients for training
+        fraction_evaluate=1,  # Sample 5% of available clients for evaluation
+        min_fit_clients=1,  # Never sample less than 10 clients for training
+        min_evaluate_clients=2,  # Never sample less than 5 clients for evaluation
+        min_available_clients=int(
+            NUM_CLIENTS * 0.5
+        ),  # Wait until at least 75 clients are available
+        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+        evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    )
+    client_resources = {
+        "num_cpus": 4,
+        "num_gpus": 1,
+    }
+    fl.simulation.start_simulation(
+        client_fn=get_client_fn(),
+        num_clients=NUM_CLIENTS,
+        config=fl.server.ServerConfig(num_rounds=NUM_ROUNDS),
+        strategy=strategy,
+        client_resources=client_resources
+        #actor_kwargs={
+           # "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
+            # does nothing if `num_gpus` in client_resources is 0.0
+        #},
+    )
+
+if __name__ == "__main__":
+    # Enable GPU growth in your main process
+    # enable_tf_gpu_growth()
+    main()
+
