@@ -119,7 +119,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         return self.model.set_weights(parameters)
     
     def fit(self, parameters,config):
-        self.set_parameters(parameters)
+        self.set_parameters(parameters, config)
         with open(join(currentdir, 'config.yaml'), 'r') as f:
             cfg = yaml.load(f)
 
@@ -128,13 +128,13 @@ class EmbeddingClient(fl.client.NumPyClient):
             dataroot = cfg['handheld_data']['dataroot']
             loop_path = cfg['handheld_data']['loop_path']
             all_experiments = cfg['handheld_data']['all_exp_files']
-            training_experiments = all_experiments[index*train_size:(index+1)*train_size]
+            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
         else:
             dataroot = cfg['robot_data']['dataroot']
             loop_path = cfg['robot_data']['loop_path']
             all_experiments = cfg['robot_data']['all_exp_files']
-            training_experiments = all_experiments[index*train_size:(index+1)*train_size]
+            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
 
         MODEL_NAME = cfg['training_opt']['thermal_params']['nn_name']
@@ -264,7 +264,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validation size: ', np.shape(validation_triplets))                
         self.model.set_weights(parameters)
-        loss, _ = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
+        loss = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, len(validation_triplets), {"loss": loss}
     
 
@@ -315,7 +315,7 @@ def get_evaluate_fn():
 
         model = model_setup()             
         model.set_weights(parameters)
-        loss, _ = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
+        loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, {"loss": loss} 
     return evaluate
        
@@ -333,13 +333,13 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 1,
-        "num_cpus": 4,
+        #"num_gpus": 1,
+        "num_cpus": 4
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=NUM_ROUNDS),
+        config=fl.server.ServerConfig(num_rounds=2),
         strategy=strategy,
         client_resources=client_resources,
         actor_kwargs={

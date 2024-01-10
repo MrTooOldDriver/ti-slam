@@ -3,10 +3,10 @@ os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-import tensorflow as tf
-tf_config=tf.compat.v1.ConfigProto()
-tf_config.gpu_options.allow_growth=True
-sess = tf.compat.v1.Session(config=tf_config)
+#import tensorflow as tf
+#tf_config=tf.compat.v1.ConfigProto()
+#tf_config.gpu_options.allow_growth=True
+#sess = tf.compat.v1.Session(config=tf_config)
 
 import numpy as np
 np.random.seed(0)
