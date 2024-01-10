@@ -98,12 +98,13 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.val_size = 1
         self.index = nun_clients
         NUM_CLIENTS = NUM_CLIENTS + 1
-        
 
     def get_parameters(self):
+        print("client "+ self.cid + " giving parameters to server")
         return self.model.get_weights()
     
     def set_parameters(self, parameters):
+        print("client "+ self.cid + " received parameters from server")
         return self.model.set_weights(parameters)
     
     def fit(self, parameters):
@@ -269,8 +270,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     return {"loss": sum(losses) / sum(examples)}    
 
 def get_evaluate_fn():
-    def evaluate():
-
+    def evaluate(parameters):
         with open(join(currentdir, 'config.yaml'), 'r') as f:
             cfg = yaml.load(f)
 
@@ -301,9 +301,11 @@ def get_evaluate_fn():
         val_starting = cfg['robot_data']['total_training']
         validation_experiments = all_experiments[val_starting] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
-        print('Validation size: ', np.shape(validation_triplets))                
-        self.model.set_weights(parameters)
-        loss = self.model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
+        print('Validation size: ', np.shape(validation_triplets))
+
+        model = model_setup()             
+        model.set_weights(parameters)
+        loss = model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
         return loss, {"loss": loss} 
     return evaluate
        
@@ -314,13 +316,12 @@ def main():
         min_fit_clients=1,  # Never sample less than 10 clients for training
         min_evaluate_clients=2,  # Never sample less than 5 clients for evaluation
         min_available_clients=int(
-            NUM_CLIENTS * 0.5
+            NUM_CLIENTS * 1
         ),  # Wait until at least 75 clients are available
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_cpus": 4,
         "num_gpus": 1,
     }
     fl.simulation.start_simulation(
