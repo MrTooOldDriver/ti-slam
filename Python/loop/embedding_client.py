@@ -27,7 +27,7 @@ import flwr as fl
 from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesIns, GetPropertiesRes, GetParametersIns, \
     GetParametersRes, Status, Code, parameters_to_ndarrays, ndarrays_to_parameters
 from flwr.common import Metrics
-# from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
+from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
 
 NUM_CLIENTS = 0
@@ -81,6 +81,16 @@ def model_setup():
     """
     Setup the neural loop model
     """
+    with open(join(currentdir, 'config.yaml'), 'r') as f:
+        cfg = yaml.load(f)
+    img_h = cfg['training_opt']['thermal_params']['img_h']
+    img_w = cfg['training_opt']['thermal_params']['img_w']
+    img_c = cfg['training_opt']['thermal_params']['img_c']    
+    
+    descriptor_size = cfg['training_opt']['thermal_params']['descriptor_size']
+    input_size = (img_h, img_w, img_c)
+    margin_loss = cfg['training_opt']['thermal_params']['margin_loss']
+    lr_rate = cfg['training_opt']['thermal_params']['lr_rate']    
     network = base_network(input_size, descriptor_size, trainable=True)
     network_train = build_neural_embedding((img_h, img_w, 1), network, margin_loss)
     optimizer = Adam(lr=lr_rate)
@@ -96,18 +106,19 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.model = model_setup()
         self.train_size = 2
         self.val_size = 1
-        self.index = nun_clients
+        global NUM_CLIENTS
+        self.index = NUM_CLIENTS
         NUM_CLIENTS = NUM_CLIENTS + 1
 
-    def get_parameters(self):
+    def get_parameters(self, config):
         print("client "+ self.cid + " giving parameters to server")
         return self.model.get_weights()
     
-    def set_parameters(self, parameters):
+    def set_parameters(self, parameters,config):
         print("client "+ self.cid + " received parameters from server")
         return self.model.set_weights(parameters)
     
-    def fit(self, parameters):
+    def fit(self, parameters,config):
         self.set_parameters(parameters)
         with open(join(currentdir, 'config.yaml'), 'r') as f:
             cfg = yaml.load(f)
@@ -248,12 +259,12 @@ class EmbeddingClient(fl.client.NumPyClient):
         input_size = (img_h, img_w, img_c)
         # === Load validation triplets ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
-        val_starting = cfg['robot_data']['total_training']
+        validation_experiments = all_experiments[cfg['robot_data']['total_training']+self.index:cfg['robot_data']['total_training']+self.index+self.val_size]
         validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validation size: ', np.shape(validation_triplets))                
         self.model.set_weights(parameters)
-        loss = self.model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
+        loss, _ = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, len(validation_triplets), {"loss": loss}
     
 
@@ -270,7 +281,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     return {"loss": sum(losses) / sum(examples)}    
 
 def get_evaluate_fn():
-    def evaluate(parameters):
+    def evaluate(server_round, parameters, config):
         with open(join(currentdir, 'config.yaml'), 'r') as f:
             cfg = yaml.load(f)
 
@@ -298,46 +309,47 @@ def get_evaluate_fn():
         input_size = (img_h, img_w, img_c)
         # === Load validation triplets ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
-        val_starting = cfg['robot_data']['total_training']
-        validation_experiments = all_experiments[val_starting] # dir/file names for validation
+        validation_experiments = all_experiments[cfg['robot_data']['total_training']:]
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validation size: ', np.shape(validation_triplets))
 
         model = model_setup()             
         model.set_weights(parameters)
-        loss = model.evaluate(([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None))
+        loss, _ = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, {"loss": loss} 
     return evaluate
        
 def main():
+    num_clients = 1
     strategy = fl.server.strategy.FedAvg(
-        fraction_fit=1,  # Sample 10% of available clients for training
-        fraction_evaluate=1,  # Sample 5% of available clients for evaluation
-        min_fit_clients=1,  # Never sample less than 10 clients for training
-        min_evaluate_clients=2,  # Never sample less than 5 clients for evaluation
+        fraction_fit=1,  #
+        fraction_evaluate=1,  # 
+        min_fit_clients=1,  #
+        min_evaluate_clients=2,  # 
         min_available_clients=int(
-            NUM_CLIENTS * 1
-        ),  # Wait until at least 75 clients are available
+            num_clients * 1
+        ),  
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
         "num_gpus": 1,
+        "num_cpus": 4,
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
-        num_clients=NUM_CLIENTS,
+        num_clients=num_clients,
         config=fl.server.ServerConfig(num_rounds=NUM_ROUNDS),
         strategy=strategy,
-        client_resources=client_resources
-        #actor_kwargs={
-           # "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
+        client_resources=client_resources,
+        actor_kwargs={
+            "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
             # does nothing if `num_gpus` in client_resources is 0.0
-        #},
+        },
     )
 
 if __name__ == "__main__":
     # Enable GPU growth in your main process
-    # enable_tf_gpu_growth()
+    enable_tf_gpu_growth()
     main()
 
