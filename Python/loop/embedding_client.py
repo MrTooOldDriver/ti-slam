@@ -30,7 +30,7 @@ from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
 
-NUM_CLIENTS = 0
+NUM_CLIENTS = 2
 NUM_ROUNDS = 2
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c, adjacent_frame):
     # Reserve the validation stack data
@@ -82,7 +82,7 @@ def model_setup():
     Setup the neural loop model
     """
     with open(join(currentdir, 'config.yaml'), 'r') as f:
-        cfg = yaml.load(f)
+        cfg = yaml.safe_load(f)
     img_h = cfg['training_opt']['thermal_params']['img_h']
     img_w = cfg['training_opt']['thermal_params']['img_w']
     img_c = cfg['training_opt']['thermal_params']['img_c']    
@@ -121,7 +121,7 @@ class EmbeddingClient(fl.client.NumPyClient):
     def fit(self, parameters,config):
         self.set_parameters(parameters, config)
         with open(join(currentdir, 'config.yaml'), 'r') as f:
-            cfg = yaml.load(f)
+            cfg = yaml.safe_load(f)
 
         datatype = cfg['training_opt']['dataset'] # handheld or turtle (the robot)
         if datatype == 'handheld':
@@ -233,7 +233,7 @@ class EmbeddingClient(fl.client.NumPyClient):
     
     def evaluate(self, parameters, config):
         with open(join(currentdir, 'config.yaml'), 'r') as f:
-            cfg = yaml.load(f)
+            cfg = yaml.safe_load(f)
 
         datatype = cfg['training_opt']['dataset'] # handheld or turtle (the robot)
         if datatype == 'handheld':
@@ -283,7 +283,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
         with open(join(currentdir, 'config.yaml'), 'r') as f:
-            cfg = yaml.load(f)
+            cfg = yaml.safe_load(f)
 
         datatype = cfg['training_opt']['dataset'] # handheld or turtle (the robot)
         if datatype == 'handheld':
@@ -320,7 +320,7 @@ def get_evaluate_fn():
     return evaluate
        
 def main():
-    num_clients = 1
+    num_clients = 2
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -333,7 +333,7 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        #"num_gpus": 1,
+        "num_gpus": 0.5,
         "num_cpus": 4
     }
     fl.simulation.start_simulation(
@@ -351,5 +351,6 @@ def main():
 if __name__ == "__main__":
     # Enable GPU growth in your main process
     enable_tf_gpu_growth()
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     main()
 
