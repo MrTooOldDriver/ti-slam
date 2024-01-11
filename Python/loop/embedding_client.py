@@ -229,7 +229,7 @@ class EmbeddingClient(fl.client.NumPyClient):
 
             if ((e % 10) == 0):
                 self.model.save(join(model_dir, self.cid, str(e).format('h5')))
-        return self.model.get_weights()
+        return self.model.get_weights(), self.train_size, {}
     
     def evaluate(self, parameters, config):
         with open(join(currentdir, 'config.yaml'), 'r') as f:
@@ -260,12 +260,12 @@ class EmbeddingClient(fl.client.NumPyClient):
         # === Load validation triplets ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
         validation_experiments = all_experiments[cfg['robot_data']['total_training']+self.index:cfg['robot_data']['total_training']+self.index+self.val_size]
-        validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
+        #validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validation size: ', np.shape(validation_triplets))                
         self.model.set_weights(parameters)
         loss = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
-        return loss, len(validation_triplets), {"loss": loss}
+        return loss, {"loss": loss}
     
 
 def get_client_fn():
@@ -313,14 +313,15 @@ def get_evaluate_fn():
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validation size: ', np.shape(validation_triplets))
 
-        model = model_setup()             
-        model.set_weights(parameters)
-        loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
+        with tf.device('/cpu:0'):
+            model = model_setup()             
+            model.set_weights(parameters)
+            loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, {"loss": loss} 
     return evaluate
        
 def main():
-    num_clients = 2
+    num_clients = 1
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -333,8 +334,8 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 0.5,
-        "num_cpus": 4
+        "num_gpus": 1,
+        #"num_cpus": 4
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
