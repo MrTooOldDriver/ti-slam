@@ -6,6 +6,7 @@ import os
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+import shutil
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -37,7 +38,7 @@ from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
 
-NUM_CLIENTS = 2
+NUM_CLIENTS = 0
 NUM_ROUNDS = 2
 
 def model_setup():
@@ -100,7 +101,7 @@ class DeeptioClient(fl.client.NumPyClient):
         batch_size = 9
         base_model_name = cfg['training_opt']['base_model_name']
         is_first_stage = cfg['training_opt']['is_first_stage']
-        
+
         MODEL_NAME = cfg['nn_opt']['tio_prob_params']['nn_name']
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
@@ -109,7 +110,7 @@ class DeeptioClient(fl.client.NumPyClient):
         # Training with validation set
         checkpoint_path = join('./models', MODEL_NAME, 'best').format('h5')
         if os.path.exists(checkpoint_path):
-            os.remove(checkpoint_path)
+            shutil.rmtree(checkpoint_path) # was os.remove
         checkpointer = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', mode='min', save_best_only=True,
                                     verbose=1)
 
@@ -140,7 +141,7 @@ class DeeptioClient(fl.client.NumPyClient):
         training_file_idx = np.arange(1 + self.index*self.train_size, n_training_files + 1 + self.index*self.train_size)
         seq_len = np.arange(n_training_files)
 
-        for e in range(11): #201
+        for e in range(1): #201
             print("|-----> epoch %d" % e)
             np.random.shuffle(seq_len)
             for i in range(0, n_training_files):
@@ -173,7 +174,6 @@ class DeeptioClient(fl.client.NumPyClient):
                     x_thermal_1, x_thermal_2, x_imu, y_label, y_rgb_feat = np.array(x_thermal_1), np.array(x_thermal_2), \
                                                                         np.array(x_imu), np.array(y_label), np.array(
                         y_rgb_feat)
-
 
                     # for flownet
                     x_thermal_1 = np.repeat(x_thermal_1, 3, axis=-1)
@@ -298,10 +298,10 @@ def get_evaluate_fn():
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[:4]
+        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[:1]
         print(validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[:4]
+        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[:1]
         print(join(hallucination_dir, 'val', '*.h5'))
         print(hallucination_val_files)
 
@@ -309,19 +309,19 @@ def get_evaluate_fn():
                                                                                                                     hallucination_val_files,
                                                                                                                     sensor='thermal',
                                                                                                                     imu_length=IMU_LENGTH)
-#        len_val_i = y_val_t.shape[0]        
-#        
-#        with tf.device('/cpu:0'):
-#            model = model_setup()             
-#            model.set_weights(parameters)
-#            loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
-#                                  y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
-#        print("server round "+ str(server_round))
-#        if(server_round % 5 == 4):
-#            model.save(join("server_deeptio_model", str(server_round).format('h5'))) 
-#               
-#        return loss, {"loss": loss}
-        return 0.7, {"loss": 0.7}           
+        len_val_i = y_val_t.shape[0]        
+        
+        with tf.device('/cpu:0'):
+            model = model_setup()             
+            model.set_weights(parameters)
+            loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
+                                  y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
+        print("server round "+ str(server_round))
+        if(server_round % 5 == 4):
+            model.save(join("server_deeptio_model", str(server_round).format('h5'))) 
+               
+        return loss, {"loss": loss}
+        # return 0.7, {"loss": 0.7} # for debugging cases           
     return evaluate
 
 def main():
