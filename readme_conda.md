@@ -8,7 +8,7 @@ pip3 install tensorflow==2.6.0 protobuf==3.20.0
 
 TEST TENSORFLOW GPU INSTALLATION WITH THIS
 
-python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
 
 pip3 install scipy matplotlib opencv-python
 

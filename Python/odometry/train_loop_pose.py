@@ -1,3 +1,4 @@
+import math
 import os
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
@@ -5,7 +6,13 @@ os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 import numpy as np
 np.random.seed(0)
 from pylab import *
-from keras.callbacks import TensorBoard, ModelCheckpoint, LearningRateScheduler
+
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
+import tensorflow.compat.v1.keras.backend as K
+from tensorflow.compat.v1.keras.callbacks import TensorBoard, ModelCheckpoint, LearningRateScheduler
+
 from utility.networks import build_neural_loop_closure
 from utility.data_tools import get_pose_pairs, get_image
 import os

@@ -19,12 +19,15 @@ import math
 import plot_util
 from os.path import join
 import mdn
-from keras import backend as K
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
+import tensorflow.compat.v1.keras.backend as K
 from networks import build_neural_odometry
 from data_tools import load_odom_data, load_data_multi_timestamp
 
 K.set_image_data_format('channels_last') # changed for version issue
-K.set_session(K.tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)))  #
+K.set_session(tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)))
 K.set_learning_phase(0)  # Run testing mode
 
 SCALER = 1.0 # scale label: 1, 100, 10000

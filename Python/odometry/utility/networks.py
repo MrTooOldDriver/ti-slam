@@ -226,7 +226,7 @@ def build_neural_loop_closure(cfg, input_shape=(1, 512, 640, 3), istraining=True
     image_1 = Input(shape=input_shape, name='image_1')
     image_2 = Input(shape=input_shape, name='image_2')
 
-    image_merged = tf.concat(axis=-1)([image_1, image_2])
+    image_merged = tf.concat([image_1, image_2], axis=-1)
 
     # Thermal flow features extractor
     net = FlowNet_module(image_merged)
@@ -263,10 +263,10 @@ def build_neural_loop_closure(cfg, input_shape=(1, 512, 640, 3), istraining=True
     forward_lstm_2 = LSTM(512, return_sequences=True, name='forward_lstm_2')(forward_lstm_1)
 
     fc_position_1 = TimeDistributed(Dense(128, activation='relu'), name='fc_position_1')(forward_lstm_2)
-    mdn_trans = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES))(fc_position_1)
+    mdn_trans = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES), name='time_distributed_1')(fc_position_1)
 
     fc_orientation_1 = TimeDistributed(Dense(128, activation='relu'), name='fc_orientation_1')(forward_lstm_2)
-    mdn_rot = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES))(fc_orientation_1)
+    mdn_rot = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES), name='time_distributed_2')(fc_orientation_1)
 
     if istraining:
 

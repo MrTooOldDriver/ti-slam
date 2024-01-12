@@ -10,9 +10,14 @@ from os.path import join
 from data_tools import load_eval_data_from_neuloop
 from networks import build_neural_loop_closure
 from eulerangles import euler2quat
-from keras import backend as K
-K.set_image_dim_ordering('tf')
-K.set_session(K.tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)))  #
+
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
+import tensorflow.compat.v1.keras.backend as K
+
+K.set_image_data_format('channels_last')
+K.set_session(tf.compat.v1.Session(config=tf.compat.v1.ConfigProto(allow_soft_placement=True, log_device_placement=False)))  #
 K.set_learning_phase(0)  # Run testing mode
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
