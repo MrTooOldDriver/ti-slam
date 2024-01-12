@@ -317,6 +317,9 @@ def get_evaluate_fn():
             model = model_setup()             
             model.set_weights(parameters)
             loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
+        print("server round "+ str(server_round))
+        if(server_round % 5 == 4):
+            model.save(join("server_model", str(server_round).format('h5')))
         return loss, {"loss": loss} 
     return evaluate
        

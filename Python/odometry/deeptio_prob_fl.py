@@ -313,7 +313,7 @@ def get_evaluate_fn():
             model.set_weights(parameters)
             loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
                                   y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
-        print("server round "+ server_round)
+        print("server round "+ str(server_round))
         if(server_round % 5 == 4):
             model.save(join("server_deeptio_model", str(server_round).format('h5')))        
         return loss, {"loss": loss}           
