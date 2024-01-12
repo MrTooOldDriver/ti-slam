@@ -1,2 +1,9 @@
 /Dataset
 /figures
+.idea/
+Dataset/
+Python/loop/models
+Python/odometry/results
+Python/loop/results
+*.pyc
+*.h5

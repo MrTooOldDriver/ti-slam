@@ -20,18 +20,20 @@ from os.path import join
 import yaml
 from utility.networks import build_neural_odometry
 from utility.data_tools import odom_validation_stack_hallucination, load_hallucination_data, load_odom_data
-from keras.callbacks import ModelCheckpoint
-from keras.callbacks import TensorBoard
 
 import json
-# K.set_image_dim_ordering('tf')
-# K.set_session(K.tf.Session(config=K.tf.ConfigProto(allow_soft_placement=True, log_device_placement=False))) #
+
+import tensorflow.compat.v1.keras.backend as K
+from tensorflow.compat.v1.keras.callbacks import TensorBoard, ModelCheckpoint
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
 
 def main():
     print('For thermal-IMU ONLY!')
 
     with open(join(currentdir, 'config.yaml'), 'r') as f:
-        cfg = yaml.load(f)
+        cfg = yaml.safe_load(f)
 
     # Training setting
     data_type = cfg['training_opt']['dataset']
@@ -63,7 +65,7 @@ def main():
     tensor_board = TensorBoard(log_dir=join(model_dir, 'logs'), histogram_freq=0)
     training_loss = []
 
-    validation_files = sorted(glob.glob(join(data_dir, 'val', '*.h5')))
+    validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
     print(validation_files)
 
     hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
@@ -130,8 +132,8 @@ def main():
 
                 if i == len(seq_len) - 1 and j == (len(range_seq) // (batch_size - 1)) - 1:
                     if int(is_first_stage) == 1:
-                        history = model.fit({'image_1': x_thermal_1, 'image_2': x_thermal_2, 'imu_data': x_imu},
-                                            {'time_distributed_1': y_label[:, :, 0:3], 'time_distributed_2': y_label[:, :, 3:6],
+                        history = model.fit(x={'image_1': x_thermal_1, 'image_2': x_thermal_2, 'imu_data': x_imu},
+                                            y={'time_distributed_1': y_label[:, :, 0:3], 'time_distributed_2': y_label[:, :, 3:6],
                                              'flatten_rgb': y_rgb_feat},
                                             validation_data=(
                                                 [x_thermal_val_1[0:len_val_i, :, :, :, :],
@@ -139,7 +141,7 @@ def main():
                                                  x_imu_val_t[0:len_val_i, :, :]],
                                                 [y_val_t[:, :, 0:3],
                                                  y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]]),
-                                            batch_size=batch_size - 1, shuffle='batch', nb_epoch=1,
+                                            batch_size=batch_size - 1, shuffle='batch', epochs=1,
                                             callbacks=[checkpointer, tensor_board], verbose=1)
                         training_loss.append(history.history['loss'])
                     else:
@@ -153,7 +155,7 @@ def main():
                                                  x_imu_val_t[0:len_val_i, :, :]],
                                                 [y_val_t[:, :, 0:3],
                                                  y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]]),
-                                            batch_size=batch_size - 1, shuffle='batch', nb_epoch=1,
+                                            batch_size=batch_size - 1, shuffle='batch', epochs=1,
                                             callbacks=[checkpointer, tensor_board], verbose=1)
                         training_loss.append(history.history['loss'])
 
@@ -161,7 +163,7 @@ def main():
                     model.fit({'image_1': x_thermal_1, 'image_2': x_thermal_2, 'imu_data': x_imu},
                               {'time_distributed_1': y_label[:, :, 0:3], 'time_distributed_2': y_label[:, :, 3:6],
                                'flatten_rgb': y_rgb_feat},
-                              batch_size=batch_size - 1, shuffle='batch', nb_epoch=1, verbose=1)
+                              batch_size=batch_size - 1, shuffle='batch', epochs=1, verbose=1)
 
         if ((e % 25) == 0):
             model.save(join(model_dir, str(e).format('h5')))
@@ -176,7 +178,7 @@ def main():
 
     print('Saving nn options ....')
     with open(join(model_dir, 'nn_opt.json'), 'w') as fp:
-        json.dump(cfg['nn_opt']['tio_params'], fp)
+        json.dump(cfg['nn_opt']['tio_prob_params'], fp)
 
     print('Finished training ', str(n_training_files), ' trajectory!')
 

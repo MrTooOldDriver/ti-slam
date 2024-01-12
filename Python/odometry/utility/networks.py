@@ -4,31 +4,22 @@ Network definitions
 
 import numpy as np
 np.random.seed(0)
-# import matplotlib.pyplot as plt
-# from pylab import *
-from keras.models import Sequential
-from keras.optimizers import Adam, RMSprop
-from keras.layers import Conv2D, ZeroPadding2D, Activation, Input, concatenate
-from keras.models import Model, load_model
-from keras.datasets import mnist
 
-from keras.layers.normalization import BatchNormalization
-from keras.layers.pooling import MaxPooling2D, GlobalMaxPooling2D
-from keras.layers.merge import Concatenate
-from keras.layers.core import Lambda, Flatten, Dense, Reshape
-from keras.initializers import glorot_uniform,he_uniform
-from keras.layers import TimeDistributed, LeakyReLU, concatenate, merge, GlobalAveragePooling2D, AveragePooling2D, LSTM, Dropout, Conv2D, Multiply
-from keras.applications.resnet50 import ResNet50
-from keras.applications.densenet import DenseNet121
-from keras.engine.topology import Layer
-from keras.regularizers import l2
-from keras import backend as K
-import mdn
-# from keras.backend import l2_normalize, expand_dims, variable, constant
-from keras.utils import plot_model, normalize
 import tensorflow as tf
-import numpy as np
-from keras import initializers, layers
+import tensorflow.compat.v1.keras.backend as K
+tf.compat.v1.disable_eager_execution()
+tf.compat.v1.experimental.output_all_intermediates(True)
+
+
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.layers import Input
+from tensorflow.keras import Model
+from tensorflow.keras.layers import Lambda, Flatten, Dense, Reshape
+from tensorflow.keras.layers import TimeDistributed, LeakyReLU, Concatenate, AveragePooling2D, LSTM, Conv2D, Multiply
+from tensorflow.keras.models import load_model
+
+import mdn
+
 from os.path import join
 
 def huber_loss(y_true, y_pred, clip_delta=1.0):
@@ -94,7 +85,7 @@ def build_neural_odometry(cfg, input_shape = (1, 512, 640, 3), imu_length=10, is
     image_1 = Input(shape=input_shape, name='image_1')
     image_2 = Input(shape=input_shape, name='image_2')
 
-    image_merged = concatenate([image_1, image_2], axis=-1, name='image_merged')
+    image_merged = tf.concat([image_1, image_2], axis=-1, name='image_merged')
 
     # --- thermal data
     net = FlowNet_module(image_merged)
@@ -120,29 +111,28 @@ def build_neural_odometry(cfg, input_shape = (1, 512, 640, 3), imu_length=10, is
     reshape_imu = Reshape((1, imu_length * imu_states))(imu_lstm_1)  # 2560, 5120, 10240
 
     # merge features
-    merge_features = concatenate([conv_thermal_feature, conv_hallucination_feature, reshape_imu],
-                           axis=-1, name='merge_features')
+    merge_features = tf.concat([conv_thermal_feature, conv_hallucination_feature, reshape_imu],axis=-1, name='merge_features')
 
     # selective merge feature
     dense_selective_thermal = Dense(2048, activation='sigmoid', use_bias=False, name='dense_selective_thermal')(merge_features)
     dense_selective_hallucination = Dense(2048, activation='sigmoid', use_bias=False, name='dense_selective_hallucination')(merge_features)
     dense_selective_imu = Dense(imu_length * imu_states, activation='sigmoid', use_bias=False, name='dense_selective_imu')(merge_features)
 
-    selective_thermal_features = Multiply()([conv_thermal_feature, dense_selective_thermal])
-    selective_hallucination_features = Multiply()([conv_hallucination_feature, dense_selective_hallucination])
-    selective_imu_features = Multiply()([reshape_imu, dense_selective_imu])
+    selective_thermal_features = tf.math.multiply(conv_thermal_feature, dense_selective_thermal)
+    selective_hallucination_features = tf.math.multiply(conv_hallucination_feature, dense_selective_hallucination)
+    selective_imu_features = tf.math.multiply(reshape_imu, dense_selective_imu)
 
-    selective_features = concatenate([selective_thermal_features, selective_hallucination_features, selective_imu_features],
+    selective_features = tf.concat([selective_thermal_features, selective_hallucination_features, selective_imu_features],
                                axis=-1, name='selective_features')
 
-    forward_lstm_1 = LSTM(512, dropout_W=0.25, return_sequences=True, name='forward_lstm_1')(selective_features)
+    forward_lstm_1 = LSTM(512, dropout=0.25, return_sequences=True, name='forward_lstm_1')(selective_features)
     forward_lstm_2 = LSTM(512, return_sequences=True, name='forward_lstm_2')(forward_lstm_1)
 
     fc_position_1 = TimeDistributed(Dense(128, activation='relu'), name='fc_position_1')(forward_lstm_2)  # tanh
-    mdn_trans = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES))(fc_position_1)
+    mdn_trans = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES), name='time_distributed_1')(fc_position_1)
 
     fc_orientation_1 = TimeDistributed(Dense(128, activation='relu'), name='fc_orientation_1')(forward_lstm_2)  # tanh
-    mdn_rot = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES))(fc_orientation_1)
+    mdn_rot = TimeDistributed(mdn.MDN(OUTPUT_DIMS, N_MIXES), name='time_distributed_2')(fc_orientation_1)
 
     if istraining:
         model = Model(inputs=[image_1, image_2, imu_data], outputs=[mdn_trans, mdn_rot, conv_hallucination_feature])
@@ -236,7 +226,7 @@ def build_neural_loop_closure(cfg, input_shape=(1, 512, 640, 3), istraining=True
     image_1 = Input(shape=input_shape, name='image_1')
     image_2 = Input(shape=input_shape, name='image_2')
 
-    image_merged = concatenate([image_1, image_2], axis=-1)
+    image_merged = tf.concat(axis=-1)([image_1, image_2])
 
     # Thermal flow features extractor
     net = FlowNet_module(image_merged)
@@ -254,7 +244,7 @@ def build_neural_loop_closure(cfg, input_shape=(1, 512, 640, 3), istraining=True
                                  name='avg_pool_2'+hallu_name)(avg_pool_1_hallucination)
     conv_hallucination_feature = TimeDistributed(Flatten(), name='flatten_hallu')(avg_pool_2_hallucination)
 
-    merge_features = concatenate([conv_thermal_feature, conv_hallucination_feature], axis=-1, name='merge_features')
+    merge_features = tf.concat([conv_thermal_feature, conv_hallucination_feature], axis=-1, name='merge_features')
 
     # Selective features (thermal, hallucination)
     dense_selective_thermal = Dense(2048, activation='sigmoid', use_bias=False, name='dense_selective_thermal')(
@@ -262,10 +252,10 @@ def build_neural_loop_closure(cfg, input_shape=(1, 512, 640, 3), istraining=True
     dense_selective_hallucination = Dense(2048, activation='sigmoid', use_bias=False,
                                           name='dense_selective_hallucination')(merge_features)
 
-    selective_thermal_features = Multiply()([conv_thermal_feature, dense_selective_thermal])
-    selective_hallucination_features = Multiply()([conv_hallucination_feature, dense_selective_hallucination])
+    selective_thermal_features = tf.math.multiply(conv_thermal_feature, dense_selective_thermal)
+    selective_hallucination_features = tf.math.multiply(conv_hallucination_feature, dense_selective_hallucination)
 
-    selective_features = concatenate([selective_thermal_features, selective_hallucination_features],
+    selective_features = tf.concat([selective_thermal_features, selective_hallucination_features],
                                axis=-1, name='selective_features')
 
     # Pose Regressor
