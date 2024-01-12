@@ -12,7 +12,7 @@ parentdir = os.path.dirname(currentdir)
 def main():
     # === Load configuration and list of training data ===
     with open(join(currentdir, 'config.yaml'), 'r') as f:
-        cfg = yaml.load(f)
+        cfg = yaml.safe_load(f)
 
     # Evaluation Parameters
     model = cfg['os_test_embed']['model_name']

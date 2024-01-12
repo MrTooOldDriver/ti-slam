@@ -33,7 +33,7 @@ from embedding_client import EmbeddingClient
 
 # === Load configuration and list of training data ===
 with open(join(currentdir, 'config.yaml'), 'r') as f:
-    cfg = yaml.load(f)
+    cfg = yaml.safe_load(f)
 
 datatype = cfg['training_opt']['dataset']
 if datatype == 'handheld':

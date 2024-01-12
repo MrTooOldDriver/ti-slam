@@ -34,7 +34,7 @@ def main():
 
     # === Load configuration and list of training data ===
     with open(join(currentdir, 'config.yaml'), 'r') as f:
-        cfg = yaml.load(f)
+        cfg = yaml.safe_load(f)
 
     dataroot = cfg['os_test_embed']['dataroot']
     img_h = cfg['training_opt']['thermal_params']['img_h']

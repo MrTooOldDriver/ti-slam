@@ -7,7 +7,7 @@ import re
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 with open(join(currentdir, 'config.yaml'), 'r') as f:
-    cfg = yaml.load(f)
+    cfg = yaml.safe_load(f)
 
 model = cfg['os_odom_test']['model']
 dataset_type = cfg['os_odom_test']['dataset']
