@@ -85,6 +85,9 @@ class DeeptioClient(fl.client.NumPyClient):
         return self.model.set_weights(parameters)
 
     def fit(self, parameters, config):
+        
+        self.model.set_weights(parameters)
+
         print('For thermal-IMU ONLY!')
 
         with open(join(currentdir, 'config.yaml'), 'r') as f:
