@@ -29,7 +29,7 @@ nn_opt:
 os_odom_test:
     model: neural_odometry # neural_loop_closure
     dataset: turtle # turtle (robot), handheld
-    saved_dir_h5: '/ti-slam/Dataset/In-house_ground_robot/odometry' # Replace with your data directory (respective odometry folder)
+    saved_dir_h5: '/home/lhcdhr/dataset/In-house_ground_robot/odometry' # Replace with your data directory (respective odometry folder)
     gap: 5
     imu_length: 20
     n_mixture: 10
@@ -37,9 +37,11 @@ os_odom_test:
 
 # Set 3
 training_opt:
-    dataset: turtle
-    data_dir: '/root/workspace/datasets/MilliVO/h5_thermal_rgb_large' # Replace with your data directory (odometry folder)
-    rgb_feature_dir: '/root/workspace/datasets/MilliVO/h5_hallucination_features_small' # Replace with your data directory (RGB Feature folder)
+#    dataset: turtle
+    data_dir_turtle: '/home/lhcdhr/dataset/In-house_ground_robot/odometry' # Replace with your data directory (odometry folder)
+    rgb_feature_dir_turtle: '/home/lhcdhr/dataset/In-house_ground_robot/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
+    data_dir_handheld: '/home/lhcdhr/dataset/Handheld/odometry' # Replace with your data directory (odometry folder)
+    rgb_feature_dir_handheld: '/home/lhcdhr/dataset/Handheld/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
     base_model_name: neural_odometry
     is_first_stage: 0 # False (0) or True (1), 1st stage to train hallucination. 2nd stage trains remaining.
 
@@ -49,8 +51,8 @@ train_loop_pose_opt:
 
 # Set 5
 loop_robot_data:
-    dataroot: '/root/workspace/public/thermal_robot'
-    loop_path: '/root/workspace/datasets/thermal_robot/loop'
+    dataroot: '/home/lhcdhr/dataset/In-house_ground_robot/raw' #raw?
+    loop_path: '/home/lhcdhr/dataset/In-house_ground_robot/loop'
     total_training: 14
     all_exp_files:
         - 2019-10-24-18-22-33
@@ -72,27 +74,27 @@ loop_robot_data:
         - 2019-11-23-15-52-53
         - 2019-11-23-15-59-12
         - 2019-11-04-20-29-51
-        - 2019-11-22-10-22-48
-        - 2019-11-22-10-26-42
-        - 2019-11-22-10-34-57
-        - 2019-11-22-10-37-42
-        - 2019-11-22-10-38-47
-        - 2019-11-28-15-40-10
-        - 2019-11-22-10-14-01
-        - 2019-11-22-10-10-00
-
-        - 2019-10-24-18-22-33 # test robot only include loop
-        - 2019-11-23-15-54-25
-        - 2019-11-23-15-52-53
-        - 2019-11-23-15-59-12
-        - 2019-11-04-20-29-51
-        - 2019-11-22-10-22-48
-        - 2019-11-22-10-26-42
-        - 2019-11-22-10-34-57
-        - 2019-11-22-10-37-42
-        - 2019-11-22-10-38-47
-        - 2019-11-28-15-40-10
-        - 2019-11-04-20-38-57
+#        - 2019-11-22-10-22-48
+#        - 2019-11-22-10-26-42
+#        - 2019-11-22-10-34-57
+#        - 2019-11-22-10-37-42
+#        - 2019-11-22-10-38-47
+#        - 2019-11-28-15-40-10
+#        - 2019-11-22-10-14-01
+#        - 2019-11-22-10-10-00
+#
+#        - 2019-10-24-18-22-33 # test robot only include loop
+#        - 2019-11-23-15-54-25
+#        - 2019-11-23-15-52-53
+#        - 2019-11-23-15-59-12
+#        - 2019-11-04-20-29-51
+#        - 2019-11-22-10-22-48
+#        - 2019-11-22-10-26-42
+#        - 2019-11-22-10-34-57
+#        - 2019-11-22-10-37-42
+#        - 2019-11-22-10-38-47
+#        - 2019-11-28-15-40-10
+#        - 2019-11-04-20-38-57
 
 # Set 6
 loop_handheld_data:
