@@ -97,7 +97,8 @@ class DeeptioClient(fl.client.NumPyClient):
             data_dir = cfg['training_opt']['data_dir_handheld']
             hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']            
 
-
+        batch_size = 9
+        
         MODEL_NAME = cfg['nn_opt']['tio_prob_params']['nn_name']
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
