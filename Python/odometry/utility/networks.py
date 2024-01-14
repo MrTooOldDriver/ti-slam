@@ -11,12 +11,12 @@ tf.compat.v1.disable_eager_execution()
 tf.compat.v1.experimental.output_all_intermediates(True)
 
 
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.layers import Input
-from tensorflow.keras import Model
-from tensorflow.keras.layers import Lambda, Flatten, Dense, Reshape
-from tensorflow.keras.layers import TimeDistributed, LeakyReLU, Concatenate, AveragePooling2D, LSTM, Conv2D, Multiply
-from tensorflow.keras.models import load_model
+from tensorflow.compat.v1.keras.optimizers import Adam
+from tensorflow.compat.v1.keras.layers import Input
+from tensorflow.compat.v1.keras import Model
+from tensorflow.compat.v1.keras.layers import Lambda, Flatten, Dense, Reshape
+from tensorflow.compat.v1.keras.layers import TimeDistributed, LeakyReLU, Concatenate, AveragePooling2D, LSTM, Conv2D, Multiply
+from tensorflow.compat.v1.keras.models import load_model
 
 import mdn
 
