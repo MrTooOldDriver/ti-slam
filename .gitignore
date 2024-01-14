@@ -9,3 +9,5 @@ Python/loop/results
 *.pyc
 *.h5
 *.pb
+/save_ckpt
+*.png
