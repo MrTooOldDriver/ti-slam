@@ -56,7 +56,7 @@ def model_setup():
     IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
 
     model_dir = join('./models', MODEL_NAME)
-    batch_size = 9
+    batch_size = 5
 
     print("Building network model: ", MODEL_NAME, ", with IMU length", IMU_LENGTH)
     model = build_neural_odometry(cfg['nn_opt']['tio_prob_params'], imu_length=IMU_LENGTH, isfirststage=is_first_stage,
@@ -70,7 +70,7 @@ class DeeptioClient(fl.client.NumPyClient):
         self.cid = cid
         self.log_progress = log_progress
         self.model = model_setup()
-        self.train_size = 2
+        self.train_size = 3
         self.val_size = 1
         global NUM_CLIENTS
         self.index = NUM_CLIENTS
@@ -101,7 +101,7 @@ class DeeptioClient(fl.client.NumPyClient):
             data_dir = cfg['training_opt']['data_dir_handheld']
             hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']            
 
-        batch_size = 9
+        batch_size = 5
         base_model_name = cfg['training_opt']['base_model_name']
         is_first_stage = cfg['training_opt']['is_first_stage']
 
@@ -121,10 +121,10 @@ class DeeptioClient(fl.client.NumPyClient):
         training_loss = []
 
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(join(hallucination_dir, 'val', '*.h5'))
         print(hallucination_val_files)
 
@@ -255,10 +255,10 @@ class DeeptioClient(fl.client.NumPyClient):
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(join(hallucination_dir, 'val', '*.h5'))
         print(hallucination_val_files)
 
@@ -314,11 +314,11 @@ def get_evaluate_fn():
                                                                                                                     imu_length=IMU_LENGTH)
         len_val_i = y_val_t.shape[0]        
         
-        with tf.device('/cpu:0'):
-            model = model_setup()             
-            model.set_weights(parameters)
-            loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
-                                  y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
+
+        model = model_setup()             
+        model.set_weights(parameters)
+        loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
+                                y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
         print("server round "+ str(server_round))
         if(server_round % 5 == 4):
             model.save(join("server_deeptio_model", str(server_round).format('h5'))) 
@@ -328,7 +328,7 @@ def get_evaluate_fn():
     return evaluate
 
 def main():
-    num_clients = 1
+    num_clients = 2
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -347,7 +347,7 @@ def main():
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=2),
+        config=fl.server.ServerConfig(num_rounds=50),
         strategy=strategy,
         client_resources=client_resources,
         #actor_kwargs={
