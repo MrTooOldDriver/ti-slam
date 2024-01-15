@@ -17,3 +17,5 @@ pip3 install flwr[simulation] flwr-datasets[vision] tensorflow-probability==0.7 
 pip3 install keras==2.6.0
 
 pip3 install numpy==1.21.0
+
+tensorboard --logdir=Python/odometry/models/neural_loop_closure_v2

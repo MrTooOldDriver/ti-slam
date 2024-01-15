@@ -3,11 +3,6 @@ os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-#import tensorflow as tf
-#tf_config=tf.compat.v1.ConfigProto()
-#tf_config.gpu_options.allow_growth=True
-#sess = tf.compat.v1.Session(config=tf_config)
-
 import numpy as np
 np.random.seed(0)
 
@@ -123,6 +118,7 @@ def main():
     validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
     print('Validatio size: ', np.shape(validation_triplets))
 
+    best_val_loss = 10000
     # === Training loops ===
     for e in range(0, n_epoch): # epoch
         print("|-----> epoch %d" % e)
@@ -177,14 +173,19 @@ def main():
 
                 if i == (n_training - 1) and j == (batch_iteration - 1):
                     # Train on batch and validate
-                    network_train.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1,
+                    history = network_train.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1,
                                       validation_data=([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None),
-                                      callbacks=[checkpointer, tensor_board])
+                                      callbacks=[tensor_board])
                 else:
-                    network_train.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1) # Train on batch
+                    history = network_train.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1) # Train on batch
+        val_loss = history.history['val_loss']
+        if val_loss[0] < best_val_loss:
+            best_val_loss = val_loss[0]
+            network.save(join(model_dir, 'best'.format('h5')))
+            print('Best model saved! val_loss: ', str(best_val_loss))
 
         if ((e % 50) == 0):
-            network_train.save(join(model_dir, str(e).format('h5')))
+            network.save(join(model_dir, str(e).format('h5')))
 
 if __name__ == "__main__":
     os.system("hostname")

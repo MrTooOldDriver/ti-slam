@@ -96,14 +96,14 @@ def model_setup():
     optimizer = Adam(lr=lr_rate)
     network_train.compile(loss=None, optimizer=optimizer)
     network_train.summary()
-    return network_train
+    return network_train, network
 
 class EmbeddingClient(fl.client.NumPyClient):
 
     def __init__(self, cid: str, log_progress: bool = False):
         self.cid = cid
         self.log_progress = log_progress
-        self.model = model_setup()
+        self.model, self.model_saved = model_setup()
         self.train_size = 2
         self.val_size = 1
         global NUM_CLIENTS
@@ -228,7 +228,7 @@ class EmbeddingClient(fl.client.NumPyClient):
                         self.model.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1) # Train on batch
 
             if ((e % 10) == 0):
-                self.model.save(join(model_dir, self.cid, str(e).format('h5')))
+                self.model_saved.save(join(model_dir, self.cid, str(e).format('h5')))
         return self.model.get_weights(), self.train_size, {}
     
     def evaluate(self, parameters, config):
@@ -314,12 +314,12 @@ def get_evaluate_fn():
         print('Validation size: ', np.shape(validation_triplets))
 
         with tf.device('/cpu:0'):
-            model = model_setup()             
+            model, model_saved = model_setup()
             model.set_weights(parameters)
             loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         print("server round "+ str(server_round))
         if(server_round % 5 == 4):
-            model.save(join("server_model", str(server_round).format('h5')))
+            model_saved.save(join("server_model", str(server_round).format('h5')))
         return loss, {"loss": loss} 
     return evaluate
        

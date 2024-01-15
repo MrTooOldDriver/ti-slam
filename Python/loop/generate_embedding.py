@@ -18,6 +18,7 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 import argparse
+import tensorflow as tf
 
 def main():
     DESCRIPTION = """This script generate the output embedding from a sequence and save it in a file."""
@@ -48,9 +49,14 @@ def main():
     print('Load evaluation data: ', eval_exp, ' ', np.shape(eval_data))
 
     # === Model Definition ===
-    network = base_network(input_size, descriptor_size, trainable=False)
+    # network = base_network(input_size, descriptor_size, trainable=False)
+    # model_path = join('./models', model, epoch)
+    # network.load_weights(model_path, by_name=True)
+
     model_path = join('./models', model, epoch)
-    network.load_weights(model_path, by_name=True)
+    network = tf.compat.v1.keras.models.load_model(model_path)
+    print(network.summary())
+
     st_network_time = time.time()
     embed_descriptor = network.predict(eval_data)
     prediction_time = time.time() - st_network_time
