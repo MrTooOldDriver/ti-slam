@@ -30,7 +30,7 @@ from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
 
-NUM_CLIENTS = 2
+NUM_CLIENTS = 0
 NUM_ROUNDS = 2
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c, adjacent_frame):
     # Reserve the validation stack data
@@ -265,7 +265,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         print('Validation size: ', np.shape(validation_triplets))                
         self.model.set_weights(parameters)
         loss = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
-        return loss, {"loss": loss}
+        return loss, self.val_size, {"loss": loss}
     
 
 def get_client_fn():

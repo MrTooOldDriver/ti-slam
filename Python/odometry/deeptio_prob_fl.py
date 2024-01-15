@@ -272,7 +272,7 @@ class DeeptioClient(fl.client.NumPyClient):
         loss = self.model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
                                     y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
 
-        return loss, {"loss": loss}       
+        return loss, self.val_size, {"loss": loss}       
 
 def get_client_fn():
     def client_fn(cid:str):

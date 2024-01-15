@@ -238,7 +238,7 @@ class LoopPoseClient(fl.client.NumPyClient):
 
         self.model.set_weights(parameters)
         loss = self.model.evaluate(x=[x_val_img_1, x_val_img_2], y=[y_val[:, :, 0:3], y_val[:, :, 3:6]])
-        return loss, {"loss": loss}
+        return loss, self.val_size, {"loss": loss}
 
 def get_client_fn():
     def client_fn(cid:str):
