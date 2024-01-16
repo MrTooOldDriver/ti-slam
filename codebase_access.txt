@@ -1,4 +1,4 @@
-Please access the code base here:
+Please access the repository here:
 https://github.com/MrTooOldDriver/ti-slam
 
 # FTI-SLAM
