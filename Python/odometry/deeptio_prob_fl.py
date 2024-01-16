@@ -59,7 +59,7 @@ def model_setup():
     IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
 
     model_dir = join('./models', MODEL_NAME)
-    batch_size = 9
+    batch_size = 5
 
     print("Building network model: ", MODEL_NAME, ", with IMU length", IMU_LENGTH)
     model = build_neural_odometry(cfg['nn_opt']['tio_prob_params'], imu_length=IMU_LENGTH, isfirststage=is_first_stage,
@@ -121,10 +121,10 @@ class DeeptioClient(fl.client.NumPyClient):
         training_loss = []
 
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(join(hallucination_dir, 'val', '*.h5'))
         print(hallucination_val_files)
 
@@ -240,10 +240,10 @@ class DeeptioClient(fl.client.NumPyClient):
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.train_size*self.index:self.train_size*(self.index+1)]
+        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
         print(join(hallucination_dir, 'val', '*.h5'))
         print(hallucination_val_files)
 
@@ -302,11 +302,11 @@ def get_evaluate_fn():
                                                                                                                     imu_length=IMU_LENGTH)
         len_val_i = y_val_t.shape[0]        
         
-        with tf.device('/cpu:0'):
-            model = model_setup()             
-            model.set_weights(parameters)
-            loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
-                                  y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
+
+        model = model_setup()             
+        model.set_weights(parameters)
+        loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
+                                y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
         print("server round "+ str(server_round))
         global BEST_LOSS
         if loss[0] < BEST_LOSS:
