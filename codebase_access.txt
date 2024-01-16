@@ -1,0 +1,18 @@
+Please access the code base here:
+
+https://github.com/MrTooOldDriver/ti-slam
+
+First, setup the environment with conda using the readme here:
+
+https://github.com/MrTooOldDriver/ti-slam/blob/main/readme_conda.md
+
+For embeeding FL training, run embedding_client.py
+
+For neural odom FL training, run deeptio_prob_fl.py
+
+For neural loop closure training, run loop_pose_fl.py
+
+The rest of the TI-SLAM training process are remain the same. Please refer to TI-SLAM readme in the repo for how to running then. For how to eval the final result for FTI-SLAM, please also refer to TI-SLAM readme, you will need matlab for it:
+
+https://github.com/MrTooOldDriver/ti-slam/blob/main/README.md
+
