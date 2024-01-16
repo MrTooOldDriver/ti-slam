@@ -12,6 +12,7 @@ Please refer to `readme_conda.md` and  `codebase_access.txt` for setting up the 
 ## Dependencies: Python
 - Conda
 - Python 3.8
+- [Flower](https://flower.dev/)
 - Cuda toolkit 11.2, cudnn 8.1.0
 - TensorFlow 2.6.0
 - Tensorflow-probability 0.7
@@ -22,8 +23,59 @@ Please refer to `readme_conda.md` and  `codebase_access.txt` for setting up the 
 - scipy
 - matplotlib
 - opencv-python
+- PyYAML 5.3.1
+
 ## Dependencies: MATLAB
 - MATLAB R2019
 - Navigation ToolBox
+
+## Dataset
+The dataset can be downloaded from the link provided in the original [TI-SLAM repo](https://github.com/risqiutama/ti-slam?tab=readme-ov-file#dataset).
+
+## Training
+
+For neural embeeding FL training, run `Python/loop/embedding_client.py`
+
+For neural odometry FL training, run `Python/odom/deeptio_prob_fl.py`
+
+For neural loop closure FL training, run `Python/odom/loop_pose_fl.py`
+
+## Testing
+The training will save the trained server models under designated directories.
+
+Please follow these steps to get test results (the same as [TI-SLAM](https://github.com/risqiutama/ti-slam?tab=readme-ov-file#testing):
+
+### 1. Setup the config files.
+Before running the test code, take a look at the `config.yaml` inside `Python/odometry` and `Python/loop`, and 
+replace the path pointing to dataset with your `<host dataset dir path>`.
+
+### 2. Test Neural Embeddng
+Run `Python/odometry/os_test_odom.py`. The code will generate the output poses for all models and all 
+trajectories in the folder `Python/odometry/results` (.txt files) and `Python/odometry/figs` (.png files showing the predicted trajectories).
+
+### 3. Test Neural Embedding
+Run `Python/loop/os_test_embed.py`. 
+The code outputs the embedding features in the folder `Python/loop/results` (.csv files).
+
+To convert the embedding features into a list of loop pairs, execute the following matlab code:
+```
+generate_loop_from_embeddings.m # run it from Matlab
+```
+The matlab code will generate the loop pairs in `Python/odometry/results` (.csv files).
+
+###  4. Test Neural Loop Closure
+Run `Python/odom/os_test_loop.py`
+The code will generate the output poses for all models and all trajectories in the folder `Python/odometry/results`.
+
+### 5. Test the SLAM back end
+To optimize the odometry by using the robust SLAM back end implemented by the TI-SLAM team, please run the following Matlab code:
+```
+robust_pose_graph_optimization.m # run it from Matlab
+```
+The code generates the figure showing the optimized trajectory in `figures/optimized_odometry` (.pdf files).
+
+
+
+
 
 
