@@ -9,7 +9,10 @@ This is the final project of L46: Principles of Machine Learning Systems, Depart
 
 The project report is `project_report.pdf` in this repo.
 
-The recorded experimental results are available in `experiment_results.xlsx`.
+The experimental results are available at `figures/optimized_odometry` and `Python/odometry/results`.
+
+The training and testing statistics are available at `experiment_results.xlsx`
+
 
 Please refer to `readme_conda.md` and  `codebase_access.txt` for setting up the conda environment and running the experiments.
 
