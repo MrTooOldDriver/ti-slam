@@ -1,9 +1,15 @@
 # FTI-SLAM
 
 The federated learning version of [Graph-based Thermal-Inertial SLAM with Probabilistic Neural Networks](https://arxiv.org/abs/2104.07196).
-Muhamad Risqi U. Saputra, Chris Xiaoxuan Lu, Pedro P. B. de Gusmao, Bing Wang, Andrew Markham, and Niki Trigoni.  
+
+### Team members:
+Haochen Liu and Hantao Zhong
 
 This is the final project of L46: Principles of Machine Learning Systems, Department of Computer Science and Technology, University of Cambridge.
+
+The project report is `project_report.pdf` in this repo.
+
+The recorded experimental results are available in `experiment_results.xlsx`.
 
 Please refer to `readme_conda.md` and  `codebase_access.txt` for setting up the conda environment and running the experiments.
 
