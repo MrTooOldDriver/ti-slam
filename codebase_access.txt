@@ -16,3 +16,5 @@ The rest of the TI-SLAM training process are remain the same. Please refer to TI
 
 https://github.com/MrTooOldDriver/ti-slam/blob/main/README.md
 
+By Haochen Liu and Hantao Zhong @ Department of Computer Science, University of Cambridge
+16/01/2024
