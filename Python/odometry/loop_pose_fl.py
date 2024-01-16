@@ -1,3 +1,4 @@
+import gc
 import math
 import os
 os.environ['KERAS_BACKEND']='tensorflow'
@@ -10,6 +11,8 @@ from pylab import *
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.experimental.output_all_intermediates(True)
+tf_config=tf.compat.v1.ConfigProto()
+tf_config.gpu_options.allow_growth=True
 import tensorflow.compat.v1.keras.backend as K
 from tensorflow.compat.v1.keras.callbacks import TensorBoard, ModelCheckpoint, LearningRateScheduler
 
@@ -32,7 +35,7 @@ from typing import Dict, List, Tuple
 
 NUM_CLIENTS = 0
 NUM_ROUNDS = 2
-
+BEST_LOSS = 1000
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c):
     # Reserve the validation stack data
     total_val_length = 0
@@ -84,7 +87,7 @@ class LoopPoseClient(fl.client.NumPyClient):
         self.cid = cid
         self.log_progress = log_progress
         self.model = model_setup()
-        self.train_size = 2
+        self.train_size = 3
         self.val_size = 1
         global NUM_CLIENTS
         self.index = NUM_CLIENTS
@@ -134,9 +137,6 @@ class LoopPoseClient(fl.client.NumPyClient):
         checkpoint_path = join('./models', MODEL_NAME, 'best').format('h5')
         if os.path.exists(checkpoint_path):
             shutil.rmtree(checkpoint_path)
-        checkpointer = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', mode='min', save_best_only=True,
-                                    verbose=1)
-        tensor_board = TensorBoard(log_dir=join(model_dir, 'logs'))        
         # regulate learning rate
         def step_decay(epoch):
             initial_lrate = cfg['nn_opt']['loop_params']['lr_rate']  # 0.001, 0.0001
@@ -156,7 +156,7 @@ class LoopPoseClient(fl.client.NumPyClient):
         print('Validation size: ' + str(np.shape(x_val_img_1)) + ' - ' + str(np.shape(x_val_img_2)))    
 
         # === Training loops ===
-        for e in range(0, 2): # n_epoch, just change it small for testing the code
+        for e in range(0, 1): # n_epoch, just change it small for testing the code
             print("|-----> epoch %d" % e)
             # Shuffle training sequences
             np.random.shuffle(training_experiments)
@@ -200,12 +200,9 @@ class LoopPoseClient(fl.client.NumPyClient):
                                         validation_data=([x_val_img_1, x_val_img_2],
                                                         [y_val[:, :, 0:3], y_val[:, :, 3:6]]),
                                         # callbacks=[checkpointer, lrate, tensor_board])
-                                        callbacks = [checkpointer, tensor_board])
+                                        callbacks = [])
                     else:
                         self.model.fit(x=[x_img_1, x_img_2], y=[y_pose[:, :, 0:3], y_pose[:, :, 3:6]], verbose=1) # Train on batch
-
-            if ((e % 50) == 0):
-                self.model.save(join(model_dir, str(e).format('h5')))
         return self.model.get_weights(), self.train_size, {}
 
     def evaluate(self, parameters, config):
@@ -230,7 +227,7 @@ class LoopPoseClient(fl.client.NumPyClient):
 
         # === Load validation poses ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
-        val_starting = cfg['robot_data']['total_training']
+        val_starting = cfg['loop_robot_data']['total_training']
         validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size]
 
         x_val_img_1, x_val_img_2, y_val = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c)
@@ -238,7 +235,11 @@ class LoopPoseClient(fl.client.NumPyClient):
 
         self.model.set_weights(parameters)
         loss = self.model.evaluate(x=[x_val_img_1, x_val_img_2], y=[y_val[:, :, 0:3], y_val[:, :, 3:6]])
-        return loss, self.val_size, {"loss": loss}
+        del self.model
+        self.model = None
+        tf.compat.v1.reset_default_graph()
+        gc.collect()
+        return loss[0], self.val_size, {"loss": loss[0]}
 
 def get_client_fn():
     def client_fn(cid:str):
@@ -284,13 +285,23 @@ def get_evaluate_fn():
             model = model_setup()             
             model.set_weights(parameters)
             loss = model.evaluate(x=[x_val_img_1, x_val_img_2], y=[y_val[:, :, 0:3], y_val[:, :, 3:6]])
+        print("server round " + str(server_round))
+        global BEST_LOSS
+        if loss[0] < BEST_LOSS:
+            BEST_LOSS = loss[0]
+            model.save(join("server_model", "best").format('h5'))
+            print("best model saved loss: " + str(BEST_LOSS))
+        print("BEST_LOSS: " + str(BEST_LOSS))
+        del model
+        model = None
+        tf.compat.v1.reset_default_graph()
+        gc.collect()
         return loss, {"loss": loss}
-
     return evaluate
 
 
 def main():
-    num_clients = 1
+    num_clients = 2
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -303,13 +314,13 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 1,
-        #"num_cpus": 4
+        "num_gpus": 1.0,
+        "num_cpus": 6
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=2),
+        config=fl.server.ServerConfig(num_rounds=50),
         strategy=strategy,
         client_resources=client_resources,
         #actor_kwargs={

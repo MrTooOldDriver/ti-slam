@@ -83,10 +83,12 @@ def main():
     # grap training files
     training_files = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
     n_training_files = len(training_files)
-    training_file_idx = np.arange(1, n_training_files + 1)
+    # temp fix for training
+    start_idx = 12
+    training_file_idx = np.arange(start_idx, start_idx + n_training_files)
     seq_len = np.arange(n_training_files)
 
-    for e in range(201):
+    for e in range(51):
         print("|-----> epoch %d" % e)
         np.random.shuffle(seq_len)
         for i in range(0, n_training_files):

@@ -73,7 +73,7 @@ function consistent_loop_pairs = spatial_consistency(loop_pairs_array, odom_arra
                                 (abs_p1_rot(3) - final_cyclic_pose_eul(3)).^2)/6);
 
                 if diff_pose < threshold % 0.005
-                    disp(strcat('Found robust loop!', num2str(diff_pose)))
+                    % disp(strcat('Found robust loop!', num2str(diff_pose)))
                     if is_first_found > 0
                         pairs_i = [loop_pairs_array.Var1(i), loop_pairs_array.Var3(i), ...
                             loop_pairs_array.Var5(i), loop_pairs_array.Var6(i), ...

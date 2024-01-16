@@ -32,6 +32,7 @@ from typing import Dict, List, Tuple
 
 NUM_CLIENTS = 0
 NUM_ROUNDS = 2
+BEST_LOSS = 1000
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c, adjacent_frame):
     # Reserve the validation stack data
     total_val_length = 0
@@ -104,7 +105,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.cid = cid
         self.log_progress = log_progress
         self.model, self.model_saved = model_setup()
-        self.train_size = 2
+        self.train_size = 3
         self.val_size = 1
         global NUM_CLIENTS
         self.index = NUM_CLIENTS
@@ -168,7 +169,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         print('Validatio size: ', np.shape(validation_triplets))
 
         # === Training loops ===
-        for e in range(0, n_epoch): # epoch
+        for e in range(0, 1): # epoch
             print("|-----> epoch %d" % e)
             # Shuffle training sequences
             np.random.shuffle(training_experiments)
@@ -223,12 +224,10 @@ class EmbeddingClient(fl.client.NumPyClient):
                         # Train on batch and validate
                         self.model.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1,
                                         validation_data=([validation_triplets[0], validation_triplets[1], validation_triplets[2]], None),
-                                        callbacks=[checkpointer, tensor_board])
+                                        callbacks=[])
                     else:
                         self.model.fit(x=[triplets[0], triplets[1], triplets[2]], y=None, verbose=1) # Train on batch
-
-            if ((e % 10) == 0):
-                self.model_saved.save(join(model_dir, self.cid, str(e).format('h5')))
+        print("client "+ self.cid + " finished training")
         return self.model.get_weights(), self.train_size, {}
     
     def evaluate(self, parameters, config):
@@ -318,13 +317,16 @@ def get_evaluate_fn():
             model.set_weights(parameters)
             loss = model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         print("server round "+ str(server_round))
-        if(server_round % 5 == 4):
-            model_saved.save(join("server_model", str(server_round).format('h5')))
+        global BEST_LOSS
+        if loss < BEST_LOSS:
+            BEST_LOSS = loss
+            model_saved.save(join("server_model", "best").format('h5'))
+            print("best model saved loss: "+ str(BEST_LOSS))
         return loss, {"loss": loss} 
     return evaluate
        
 def main():
-    num_clients = 1
+    num_clients = 2
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -337,13 +339,13 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 1,
-        #"num_cpus": 4
+        "num_gpus": 1.0,
+        "num_cpus": 6
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=2),
+        config=fl.server.ServerConfig(num_rounds=50),
         strategy=strategy,
         client_resources=client_resources,
         actor_kwargs={
