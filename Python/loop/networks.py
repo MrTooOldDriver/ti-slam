@@ -34,7 +34,7 @@ def base_network(input_size, descriptor_size, trainable=False):
     norm_descriptor = Lambda(lambda x: K.l2_normalize(x, axis=-1))(descriptor)
     network = Model(inputs=[base_model.input], outputs=[norm_descriptor])
     # return norm_descriptor
-    network.summary()
+    # network.summary()
 
     for layer in base_model.layers:
         layer.trainable = trainable

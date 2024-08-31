@@ -14,6 +14,7 @@ from data_tools import get_positive_negative_samples, get_image
 from os.path import join, dirname
 import yaml
 from random import randrange
+import tensorflow as tf
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -104,7 +105,7 @@ def main():
     network_train = build_neural_embedding((img_h, img_w, 1), network, margin_loss)
     optimizer = Adam(lr=lr_rate)
     network_train.compile(loss=None, optimizer=optimizer)
-    network_train.summary()
+    # network_train.summary()
     checkpoint_path = join('./models', MODEL_NAME, 'best').format('h5')
     if os.path.exists(checkpoint_path):
         os.remove(checkpoint_path)
@@ -168,8 +169,16 @@ def main():
                     triplets[1][k, :, :, :] = pos_img
                     triplets[2][k, :, :, :] = neg_img
 
-                print(np.shape(triplets))
+                # print(np.shape(triplets))
                 # Implement Get batch hard for hard triplet loss here!!!
+
+                with tf.device('/cpu:0'):
+                    triplets[0] = tf.convert_to_tensor(triplets[0], np.float32)
+                    triplets[1] = tf.convert_to_tensor(triplets[1], np.float32)
+                    triplets[2] = tf.convert_to_tensor(triplets[2], np.float32)
+                    validation_triplets[0] = tf.convert_to_tensor(validation_triplets[0], np.float32)
+                    validation_triplets[1] = tf.convert_to_tensor(validation_triplets[1], np.float32)
+                    validation_triplets[2] = tf.convert_to_tensor(validation_triplets[2], np.float32)
 
                 if i == (n_training - 1) and j == (batch_iteration - 1):
                     # Train on batch and validate

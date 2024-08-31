@@ -65,7 +65,7 @@ def main():
     network = build_neural_loop_closure(join('./models', model, epoch), istraining=False)
     # model_path = join('./models', model, epoch)
     # network.load_weights(model_path, by_name=True)
-    network.summary()
+    # network.summary()
     # predicted_poses = network.predict([x_image_1, x_image_2])
     #
     # print('Predicted pose' + str(np.shape(predicted_poses)))

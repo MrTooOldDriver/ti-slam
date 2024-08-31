@@ -37,8 +37,10 @@ def main():
 
     # Training setting
     data_type = cfg['training_opt']['dataset']
-    data_dir = cfg['training_opt']['data_dir']
-    hallucination_dir = cfg['training_opt']['rgb_feature_dir']
+    data_dir_key = 'data_dir_' + data_type
+    data_dir = cfg['training_opt'][data_dir_key]
+    hallucination_dir_key = 'rgb_feature_dir_' + data_type
+    hallucination_dir = cfg['training_opt'][hallucination_dir_key]
     base_model_name = cfg['training_opt']['base_model_name']
     is_first_stage = cfg['training_opt']['is_first_stage']
 
@@ -84,7 +86,7 @@ def main():
     training_files = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
     n_training_files = len(training_files)
     # temp fix for training
-    start_idx = 12
+    start_idx = 1
     training_file_idx = np.arange(start_idx, start_idx + n_training_files)
     seq_len = np.arange(n_training_files)
 

@@ -55,7 +55,7 @@ def main():
 
     model_path = join('./models', model, epoch)
     network = tf.compat.v1.keras.models.load_model(model_path)
-    print(network.summary())
+    # print(network.summary())
 
     st_network_time = time.time()
     embed_descriptor = network.predict(eval_data)

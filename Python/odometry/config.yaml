@@ -29,7 +29,7 @@ nn_opt:
 os_odom_test:
     model: neural_odometry # neural_loop_closure
     dataset: turtle # turtle (robot), handheld
-    saved_dir_h5: '/home/lhcdhr/dataset/In-house_ground_robot/odometry' # Replace with your data directory (respective odometry folder)
+    saved_dir_h5: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/odometry' # Replace with your data directory (respective odometry folder)
     gap: 5
     imu_length: 20
     n_mixture: 10
@@ -37,9 +37,9 @@ os_odom_test:
 
 # Set 3
 training_opt:
-#    dataset: turtle
-    data_dir_turtle: '/home/lhcdhr/dataset/In-house_ground_robot/odometry' # Replace with your data directory (odometry folder)
-    rgb_feature_dir_turtle: '/home/lhcdhr/dataset/In-house_ground_robot/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
+    dataset: turtle
+    data_dir_turtle: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/odometry' # Replace with your data directory (odometry folder)
+    rgb_feature_dir_turtle: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
     data_dir_handheld: '/home/lhcdhr/dataset/Handheld/odometry' # Replace with your data directory (odometry folder)
     rgb_feature_dir_handheld: '/home/lhcdhr/dataset/Handheld/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
     base_model_name: neural_odometry
@@ -51,9 +51,9 @@ train_loop_pose_opt:
 
 # Set 5
 loop_robot_data:
-    dataroot: '/home/lhcdhr/dataset/In-house_ground_robot/raw' #raw?
-    loop_path: '/home/lhcdhr/dataset/In-house_ground_robot/loop'
-    total_training: 4
+    dataroot: '/root/workspace/public/thermal_robot'
+    loop_path: '/root/workspace/datasets/thermal_robot/loop'
+    total_training: 18
     all_exp_files:
         - 2019-10-24-18-22-33
         - 2019-10-24-18-08-33
@@ -61,40 +61,40 @@ loop_robot_data:
         - 2019-10-24-18-21-18
         - 2019-10-24-18-16-24
         - 2019-10-24-18-13-21
-#        - 2019-10-24-18-11-06
-#        - 2019-10-24-18-05-22
-#        - 2019-10-24-18-03-57
-#        - 2019-10-24-17-58-56
-#        - 2019-10-24-17-57-46
-#        - 2019-10-24-17-56-33
-#        - 2019-10-24-18-18-47
-#        - 2019-11-04-20-29-51
-#        - 2019-10-24-18-22-33 # test
-#        - 2019-11-23-15-54-25
-#        - 2019-11-23-15-52-53
-#        - 2019-11-23-15-59-12
-#        - 2019-11-04-20-29-51
-#        - 2019-11-22-10-22-48
-#        - 2019-11-22-10-26-42
-#        - 2019-11-22-10-34-57
-#        - 2019-11-22-10-37-42
-#        - 2019-11-22-10-38-47
-#        - 2019-11-28-15-40-10
-#        - 2019-11-22-10-14-01
-#        - 2019-11-22-10-10-00
-#
-#        - 2019-10-24-18-22-33 # test robot only include loop
-#        - 2019-11-23-15-54-25
-#        - 2019-11-23-15-52-53
-#        - 2019-11-23-15-59-12
-#        - 2019-11-04-20-29-51
-#        - 2019-11-22-10-22-48
-#        - 2019-11-22-10-26-42
-#        - 2019-11-22-10-34-57
-#        - 2019-11-22-10-37-42
-#        - 2019-11-22-10-38-47
-#        - 2019-11-28-15-40-10
-#        - 2019-11-04-20-38-57
+        - 2019-10-24-18-11-06
+        - 2019-10-24-18-05-22
+        - 2019-10-24-18-03-57
+        - 2019-10-24-17-58-56
+        - 2019-10-24-17-57-46
+        - 2019-10-24-17-56-33
+        - 2019-10-24-18-18-47
+        - 2019-11-04-20-29-51
+        - 2019-10-24-18-22-33 # test
+        - 2019-11-23-15-54-25
+        - 2019-11-23-15-52-53
+        - 2019-11-23-15-59-12
+        - 2019-11-04-20-29-51
+        - 2019-11-22-10-22-48
+        - 2019-11-22-10-26-42
+        - 2019-11-22-10-34-57
+        - 2019-11-22-10-37-42
+        - 2019-11-22-10-38-47
+        - 2019-11-28-15-40-10
+        - 2019-11-22-10-14-01
+        - 2019-11-22-10-10-00
+
+        - 2019-10-24-18-22-33 # test robot only include loop
+        - 2019-11-23-15-54-25
+        - 2019-11-23-15-52-53
+        - 2019-11-23-15-59-12
+        - 2019-11-04-20-29-51
+        - 2019-11-22-10-22-48
+        - 2019-11-22-10-26-42
+        - 2019-11-22-10-34-57
+        - 2019-11-22-10-37-42
+        - 2019-11-22-10-38-47
+        - 2019-11-28-15-40-10
+        - 2019-11-04-20-38-57
 
 # Set 6
 loop_handheld_data:

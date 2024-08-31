@@ -40,7 +40,7 @@ from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
 
-NUM_CLIENTS = 0
+NUM_CLIENTS = 0 # dont touch
 NUM_ROUNDS = 2
 BEST_LOSS = 1000
 
@@ -64,7 +64,7 @@ def model_setup():
     print("Building network model: ", MODEL_NAME, ", with IMU length", IMU_LENGTH)
     model = build_neural_odometry(cfg['nn_opt']['tio_prob_params'], imu_length=IMU_LENGTH, isfirststage=is_first_stage,
                                          base_model_name=base_model_name, n_mixture=int(n_mixture))
-    model.summary(line_length=120)
+    # model.summary(line_length=120)
     return model
 
 class DeeptioClient(fl.client.NumPyClient):
@@ -275,60 +275,61 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with open(join(currentdir, 'config.yaml'), 'r') as f:
-            cfg = yaml.safe_load(f)
-        # Training setting
-        data_type = 'turtle' # default is turtle, maybe updated for later use (based on self.index)
-        if(data_type=='turtle'):
-            data_dir = cfg['training_opt']['data_dir_turtle']
-            hallucination_dir = cfg['training_opt']['rgb_feature_dir_turtle']
-        else:
-            data_dir = cfg['training_opt']['data_dir_handheld']
-            hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']    
-        MODEL_NAME = cfg['nn_opt']['tio_prob_params']['nn_name']
-        n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
-        IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
-        # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[:1]
-        print(validation_files)
-        # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[:1]
-        print(join(hallucination_dir, 'val', '*.h5'))
-        print(hallucination_val_files)
+        with tf.device('/gpu:7'):
+            with open(join(currentdir, 'config.yaml'), 'r') as f:
+                cfg = yaml.safe_load(f)
+            # Training setting
+            data_type = 'turtle' # default is turtle, maybe updated for later use (based on self.index)
+            if(data_type=='turtle'):
+                data_dir = cfg['training_opt']['data_dir_turtle']
+                hallucination_dir = cfg['training_opt']['rgb_feature_dir_turtle']
+            else:
+                data_dir = cfg['training_opt']['data_dir_handheld']
+                hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']    
+            MODEL_NAME = cfg['nn_opt']['tio_prob_params']['nn_name']
+            n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
+            IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
+            # just use a few of it each, not all; the changes are on the index. 
+            validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[:1]
+            print(validation_files)
+            # just use a few of it each, not all; the changes are on the index.
+            hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[:1]
+            print(join(hallucination_dir, 'val', '*.h5'))
+            print(hallucination_val_files)
 
-        x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
-                                                                                                                    hallucination_val_files,
-                                                                                                                    sensor='thermal',
-                                                                                                                    imu_length=IMU_LENGTH)
-        len_val_i = y_val_t.shape[0]        
-        
+            x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
+                                                                                                                        hallucination_val_files,
+                                                                                                                        sensor='thermal',
+                                                                                                                        imu_length=IMU_LENGTH)
+            len_val_i = y_val_t.shape[0]        
+            
 
-        model = model_setup()             
-        model.set_weights(parameters)
-        loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
-                                y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
-        print("server round "+ str(server_round))
-        global BEST_LOSS
-        if loss[0] < BEST_LOSS:
-            BEST_LOSS = loss[0]
-            model.save(join("server_model", "best").format('h5'))
-            print("best model saved loss: " + str(BEST_LOSS))
-        print("BEST_LOSS: " + str(BEST_LOSS))
-        del model
-        model = None
-        tf.compat.v1.reset_default_graph()
-        gc.collect()
-        return loss, {"loss": loss}
-        # return 0.7, {"loss": 0.7} # for debugging cases           
+            model = model_setup()             
+            model.set_weights(parameters)
+            loss = model.evaluate(x=[x_thermal_val_1[0:len_val_i, :, :, :, :], x_thermal_val_2[0:len_val_i, :, :, :, :],x_imu_val_t[0:len_val_i, :, :]],
+                                    y=[y_val_t[:, :, 0:3],y_val_t[:, :, 3:6], y_rgb_feat_val_t[0:len_val_i, :, :]])
+            print("server round "+ str(server_round))
+            global BEST_LOSS
+            if loss[0] < BEST_LOSS:
+                BEST_LOSS = loss[0]
+                model.save(join("server_model", "best").format('h5'))
+                print("best model saved loss: " + str(BEST_LOSS))
+            print("BEST_LOSS: " + str(BEST_LOSS))
+            del model
+            model = None
+            tf.compat.v1.reset_default_graph()
+            gc.collect()
+            return loss, {"loss": loss}
+            # return 0.7, {"loss": 0.7} # for debugging cases           
     return evaluate
 
 def main():
-    num_clients = 2
+    num_clients = 6
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
         min_fit_clients=1,  #
-        min_evaluate_clients=2,  # 
+        min_evaluate_clients=num_clients,  # 
         min_available_clients=int(
             num_clients * 1
         ),  
@@ -336,8 +337,12 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 1.0,
-        "num_cpus": 6
+        "num_gpus": 1,
+        "num_cpus": 8
+    }
+    ray_init_args = {
+        "num_cpus": 56,
+        "num_gpus": 7
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
@@ -345,6 +350,7 @@ def main():
         config=fl.server.ServerConfig(num_rounds=50),
         strategy=strategy,
         client_resources=client_resources,
+        ray_init_args = ray_init_args,
         actor_kwargs={
            "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
         },

@@ -9,3 +9,5 @@ Python/loop/results
 *.pb
 /save_ckpt
 *.png
+models
+server_model

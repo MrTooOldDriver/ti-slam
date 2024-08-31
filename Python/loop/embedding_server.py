@@ -117,7 +117,7 @@ def model_setup():
     network_train = build_neural_embedding((img_h, img_w, 1), network, margin_loss)
     optimizer = Adam(lr=lr_rate)
     network_train.compile(loss=None, optimizer=optimizer)
-    network_train.summary()
+    # network_train.summary()
     return network_train
 
 def serverside_eval(parameters):

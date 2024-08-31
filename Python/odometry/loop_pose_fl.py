@@ -254,34 +254,35 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        # === Load configuration and list of training data ===
-        with open(join(currentdir, 'config.yaml'), 'r') as f:
-            cfg = yaml.safe_load(f)        
+        with tf.device('/gpu:7'):
+            # === Load configuration and list of training data ===
+            with open(join(currentdir, 'config.yaml'), 'r') as f:
+                cfg = yaml.safe_load(f)        
+            
+            datatype = cfg['train_loop_pose_opt']['dataset']
+            if datatype == 'handheld':
+                dataroot = cfg['loop_handheld_data']['dataroot']
+                loop_path = cfg['loop_handheld_data']['loop_path']
+                all_experiments = cfg['loop_handheld_data']['all_exp_files']
+            else:
+                dataroot = cfg['loop_robot_data']['dataroot']
+                loop_path = cfg['loop_robot_data']['loop_path']
+                all_experiments = cfg['loop_robot_data']['all_exp_files']
+            
+            MODEL_NAME = cfg['nn_opt']['loop_params']['nn_name']
+            img_h = cfg['nn_opt']['loop_params']['img_h']
+            img_w = cfg['nn_opt']['loop_params']['img_w']
+            img_c = cfg['nn_opt']['loop_params']['img_c']        
+
+            # === Load validation poses ===
+            # Validation files are the same with test file as we dont use it to learn any hyperparameters
+            val_starting = cfg['loop_robot_data']['total_training']
+            validation_experiments = all_experiments[val_starting:]
+
+            x_val_img_1, x_val_img_2, y_val = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c)
+            print('Validation size: ' + str(np.shape(x_val_img_1)) + ' - ' + str(np.shape(x_val_img_2)))   
+
         
-        datatype = cfg['train_loop_pose_opt']['dataset']
-        if datatype == 'handheld':
-            dataroot = cfg['loop_handheld_data']['dataroot']
-            loop_path = cfg['loop_handheld_data']['loop_path']
-            all_experiments = cfg['loop_handheld_data']['all_exp_files']
-        else:
-            dataroot = cfg['loop_robot_data']['dataroot']
-            loop_path = cfg['loop_robot_data']['loop_path']
-            all_experiments = cfg['loop_robot_data']['all_exp_files']
-        
-        MODEL_NAME = cfg['nn_opt']['loop_params']['nn_name']
-        img_h = cfg['nn_opt']['loop_params']['img_h']
-        img_w = cfg['nn_opt']['loop_params']['img_w']
-        img_c = cfg['nn_opt']['loop_params']['img_c']        
-
-        # === Load validation poses ===
-        # Validation files are the same with test file as we dont use it to learn any hyperparameters
-        val_starting = cfg['loop_robot_data']['total_training']
-        validation_experiments = all_experiments[val_starting:]
-
-        x_val_img_1, x_val_img_2, y_val = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c)
-        print('Validation size: ' + str(np.shape(x_val_img_1)) + ' - ' + str(np.shape(x_val_img_2)))   
-
-        with tf.device('/cpu:0'):
             model = model_setup()             
             model.set_weights(parameters)
             loss = model.evaluate(x=[x_val_img_1, x_val_img_2], y=[y_val[:, :, 0:3], y_val[:, :, 3:6]])
@@ -301,12 +302,12 @@ def get_evaluate_fn():
 
 
 def main():
-    num_clients = 2
+    num_clients = 6
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
         min_fit_clients=1,  #
-        min_evaluate_clients=2,  # 
+        min_evaluate_clients=num_clients,  # 
         min_available_clients=int(
             num_clients * 1
         ),  
@@ -314,8 +315,12 @@ def main():
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
     client_resources = {
-        "num_gpus": 1.0,
-        "num_cpus": 6
+        "num_gpus": 1,
+        "num_cpus": 8
+    }
+    ray_init_args = {
+        "num_cpus": 56,
+        "num_gpus": 7
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
@@ -323,6 +328,7 @@ def main():
         config=fl.server.ServerConfig(num_rounds=50),
         strategy=strategy,
         client_resources=client_resources,
+        ray_init_args = ray_init_args,
         #actor_kwargs={
         #    "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
             # does nothing if `num_gpus` in client_resources is 0.0
