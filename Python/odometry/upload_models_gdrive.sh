@@ -1,0 +1,1 @@
+rclone copy ./models gdrive:/ti_slam_models

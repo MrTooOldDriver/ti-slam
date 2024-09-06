@@ -111,6 +111,16 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.index = NUM_CLIENTS
         NUM_CLIENTS = NUM_CLIENTS + 1
 
+    # def get_parameters(self, config):
+    #     model_params = [var.numpy() for var in self.model.trainable_variables]
+    #     model_params = ndarrays_to_parameters(model_params)
+    #     return model_params
+
+    # def set_parameters(self, parameters, config):
+    #     parameters = parameters_to_ndarrays(parameters)
+    #     for var, param in zip(self.model.trainable_variables, parameters):
+    #         var.assign(param)
+
     def get_parameters(self, config):
         print("client "+ self.cid + " giving parameters to server")
         return self.model.get_weights()
@@ -261,7 +271,11 @@ class EmbeddingClient(fl.client.NumPyClient):
         validation_experiments = all_experiments[cfg['robot_data']['total_training']+self.index:cfg['robot_data']['total_training']+self.index+self.val_size]
         #validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
-        print('Validation size: ', np.shape(validation_triplets))                
+        print('Validation size: ', np.shape(validation_triplets))
+        # parameters = parameters_to_ndarrays(parameters)                
+        # for var, param in zip(self.model.trainable_variables, parameters):
+        #     var.assign(param)
+        print('DEBUG:sum([np.isnan(w).sum() for w in weights ])=', sum([np.isnan(w).sum() for w in parameters]))
         self.model.set_weights(parameters)
         loss = self.model.evaluate(x=[validation_triplets[0], validation_triplets[1], validation_triplets[2]], y=None)
         return loss, self.val_size, {"loss": loss}
@@ -281,7 +295,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with tf.device('/gpu:7'):
+        with tf.device('/gpu:6'):
             with open(join(currentdir, 'config.yaml'), 'r') as f:
                 cfg = yaml.safe_load(f)
 
@@ -314,12 +328,20 @@ def get_evaluate_fn():
             print('Validation size: ', np.shape(validation_triplets))
 
             model, model_saved = model_setup()
+            # parameters = parameters_to_ndarrays(parameters)
+            # for var, param in zip(model.trainable_variables, parameters):
+            #     var.assign(param)
             model.set_weights(parameters)
+            print('SERVER EVAL DEBUG:sum([np.isnan(w).sum() for w in weights ])=', sum([np.isnan(w).sum() for w in parameters]))
+            print('SERVER EVAL DEBUG: model.get_weights()[0].dtype=', model.get_weights()[0].dtype)
+            model.save(join("server_model", "temp").format('h5'))
+            model = tf.keras.models.load_model(join("server_model", "temp").format('h5'))
+
         with tf.device('/cpu:0'):
             x_1 = tf.convert_to_tensor(validation_triplets[0], np.float32)
             x_2 = tf.convert_to_tensor(validation_triplets[1], np.float32)
             x_3 = tf.convert_to_tensor(validation_triplets[2], np.float32)
-        with tf.device('/gpu:7'):
+        with tf.device('/gpu:6'):
             loss = model.evaluate(x=[x_1, x_2, x_3], y=None, batch_size=32)
         print("server round "+ str(server_round))
         global BEST_LOSS
@@ -343,13 +365,84 @@ def main():
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
+    # model, model_saved = model_setup()
+    # print('DEBUG: model.get_weights()[0].dtype=', model.get_weights()[0].dtype)
+    # model_params = ndarrays_to_parameters(model.get_weights())
+    # strategy = fl.server.strategy.FedAdam(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     beta_1 = 0.9,
+    #     beta_2 = 0.99,
+    #     tau = 0.000000001,
+    #     initial_parameters = model_params
+    # )
+    # strategy = fl.server.strategy.FedAvgM(
+    #     fraction_fit=0.3,  #
+    #     fraction_evaluate=0.2,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     server_learning_rate = 1,
+    #     server_momentum = 0.9,
+    #     initial_parameters = model_params
+    # )
+
+    # strategy = fl.server.strategy.Bulyan(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     to_keep = False,
+    # )
+
+    # strategy = fl.server.strategy.FedProx(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     proximal_mu = 0.001
+    # )
+
+    # strategy = fl.server.strategy.FedTrimmedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
+
     client_resources = {
         "num_gpus": 1,
         "num_cpus": 8
     }
     ray_init_args = {
         "num_cpus": 56,
-        "num_gpus": 7
+        "num_gpus": 6
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),

@@ -156,7 +156,7 @@ class LoopPoseClient(fl.client.NumPyClient):
         print('Validation size: ' + str(np.shape(x_val_img_1)) + ' - ' + str(np.shape(x_val_img_2)))    
 
         # === Training loops ===
-        for e in range(0, 1): # n_epoch, just change it small for testing the code
+        for e in range(0, 5): # n_epoch, just change it small for testing the code
             print("|-----> epoch %d" % e)
             # Shuffle training sequences
             np.random.shuffle(training_experiments)
@@ -254,7 +254,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with tf.device('/gpu:7'):
+        with tf.device('/gpu:6'):
             # === Load configuration and list of training data ===
             with open(join(currentdir, 'config.yaml'), 'r') as f:
                 cfg = yaml.safe_load(f)        
@@ -303,7 +303,18 @@ def get_evaluate_fn():
 
 def main():
     num_clients = 6
-    strategy = fl.server.strategy.FedAvg(
+    # strategy = fl.server.strategy.FedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
+    strategy = fl.server.strategy.FedTrimmedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
         min_fit_clients=1,  #
@@ -320,19 +331,18 @@ def main():
     }
     ray_init_args = {
         "num_cpus": 56,
-        "num_gpus": 7
+        "num_gpus": 6
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
         num_clients=num_clients,
-        config=fl.server.ServerConfig(num_rounds=50),
+        config=fl.server.ServerConfig(num_rounds=10),
         strategy=strategy,
         client_resources=client_resources,
         ray_init_args = ray_init_args,
-        #actor_kwargs={
-        #    "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
-            # does nothing if `num_gpus` in client_resources is 0.0
-        #},
+        actor_kwargs={
+           "on_actor_init_fn": enable_tf_gpu_growth  # Enable GPU growth upon actor init
+        },
     )   
 
 

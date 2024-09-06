@@ -1,0 +1,2 @@
+export CUDA_VISIBLE_DEVICES=1,2,3,4,5,6,7
+/mnt/data/hantaozhong/conda_env/ti-slam/bin/python /home/hantaozhong/ti-slam/Python/loop/embedding_client.py
