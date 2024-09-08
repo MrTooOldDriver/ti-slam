@@ -107,9 +107,8 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.model, self.model_saved = model_setup()
         self.train_size = 3
         self.val_size = 1
-        global NUM_CLIENTS
-        self.index = NUM_CLIENTS
-        NUM_CLIENTS = NUM_CLIENTS + 1
+        self.index = int(cid)
+        print('cid:', self.cid, 'index:', self.index)
 
     # def get_parameters(self, config):
     #     model_params = [var.numpy() for var in self.model.trainable_variables]
@@ -139,13 +138,25 @@ class EmbeddingClient(fl.client.NumPyClient):
             dataroot = cfg['handheld_data']['dataroot']
             loop_path = cfg['handheld_data']['loop_path']
             all_experiments = cfg['handheld_data']['all_exp_files']
-            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
+            if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+                np.random.seed(0)
+                training_experiments = np.random.choice(all_experiments[0:cfg['robot_data']['total_training']], self.train_size, replace=False)
+            else:
+                print("client %s select %s from training data" % (self.index, self.train_size))
+                training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
         else:
             dataroot = cfg['robot_data']['dataroot']
             loop_path = cfg['robot_data']['loop_path']
             all_experiments = cfg['robot_data']['all_exp_files']
-            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
+            if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+                np.random.seed(0)
+                training_experiments = np.random.choice(all_experiments[0:cfg['robot_data']['total_training']], self.train_size, replace=False)
+            else:
+                print("client %s select %s from training data" % (self.index, self.train_size))
+                training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
 
         MODEL_NAME = cfg['training_opt']['thermal_params']['nn_name']
@@ -174,7 +185,14 @@ class EmbeddingClient(fl.client.NumPyClient):
         # === Load validation triplets ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
         val_starting = cfg['robot_data']['total_training']
-        validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
+
+        if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+            print("client %s outbound, randmly select  %s from validation data" % (self.index, self.val_size))
+            np.random.seed(0)
+            validation_experiments = np.random.choice(all_experiments[val_starting:], self.val_size, replace=False)
+        else:
+            print("client %s select %s from validation data" % (self.index, self.val_size))
+            validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
         validation_triplets = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c, adjacent_frame)
         print('Validatio size: ', np.shape(validation_triplets))
 
@@ -353,18 +371,18 @@ def get_evaluate_fn():
     return evaluate
        
 def main():
-    num_clients = 6
-    strategy = fl.server.strategy.FedAvg(
-        fraction_fit=1,  #
-        fraction_evaluate=1,  # 
-        min_fit_clients=1,  #
-        min_evaluate_clients=num_clients,  # 
-        min_available_clients=int(
-            num_clients * 1
-        ),  
-        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-        evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    )
+    num_clients = 3
+    # strategy = fl.server.strategy.FedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
     # model, model_saved = model_setup()
     # print('DEBUG: model.get_weights()[0].dtype=', model.get_weights()[0].dtype)
     # model_params = ndarrays_to_parameters(model.get_weights())
@@ -398,18 +416,18 @@ def main():
     #     initial_parameters = model_params
     # )
 
-    # strategy = fl.server.strategy.Bulyan(
-    #     fraction_fit=1,  #
-    #     fraction_evaluate=1,  # 
-    #     min_fit_clients=1,  #
-    #     min_evaluate_clients=num_clients,  # 
-    #     min_available_clients=int(
-    #         num_clients * 1
-    #     ),  
-    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    #     to_keep = False,
-    # )
+    strategy = fl.server.strategy.Bulyan(
+        fraction_fit=1,  #
+        fraction_evaluate=1,  # 
+        min_fit_clients=1,  #
+        min_evaluate_clients=num_clients,  # 
+        min_available_clients=int(
+            num_clients * 1
+        ),  
+        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+        evaluate_fn=get_evaluate_fn(),  # global evaluation function
+        to_keep = False,
+    )
 
     # strategy = fl.server.strategy.FedProx(
     #     fraction_fit=1,  #

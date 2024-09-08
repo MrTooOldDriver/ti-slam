@@ -75,9 +75,8 @@ class DeeptioClient(fl.client.NumPyClient):
         self.model = model_setup()
         self.train_size = 3
         self.val_size = 1
-        global NUM_CLIENTS
-        self.index = NUM_CLIENTS
-        NUM_CLIENTS = NUM_CLIENTS + 1
+        self.index = int(cid)
+        print('cid:', self.cid, 'index:', self.index)
    
     def get_parameters(self, config):
         print("client "+ self.cid + " giving parameters to server")
@@ -138,21 +137,28 @@ class DeeptioClient(fl.client.NumPyClient):
 
         # grap training files
         all_training = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
+        if self.index >= (cfg['loop_robot_data']['total_training'] / self.train_size):
+                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+                np.random.seed(0)
+                training_files = np.random.choice(all_training[0:cfg['loop_robot_data']['total_training']], self.train_size, replace=False)
+        else:
+            print("client %s select %s from training data" % (self.index, self.train_size))
+            training_files = all_training[self.index*self.train_size:(self.index+1)*self.train_size]
 
         training_files = all_training[self.index*self.train_size:(self.index+1)*self.train_size]
         n_training_files = len(training_files)
-        training_file_idx = np.arange(12 + self.index*self.train_size, n_training_files + 12 + self.index*self.train_size)
         seq_len = np.arange(n_training_files)
+        # raise Exception("stop here")
+        print('client id:', self.cid, 'training files:', training_files)
 
         for e in range(0, 5):  #201
             print("|-----> epoch %d" % e)
-            np.random.shuffle(seq_len)
-            for i in range(0, n_training_files):
-
-                training_file = data_dir + '/train/' + data_type + '_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
-                hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
-                print('---> Loading training file: turtle_seq_', str(training_file_idx[seq_len[i]]), '.h5',
-                    '---> Loading hallucinatio file: rgb_feat_seq_', str(training_file_idx[seq_len[i]]), '.h5')
+            for i in range(0, len(training_files)):
+                seq_number = training_files[i].split('_')[-1].split('.')[0]
+                training_file = data_dir + '/train/' + data_type + '_seq_' + str(seq_number) + '.h5'
+                hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(seq_number) + '.h5'
+                print('---> Loading training file: turtle_seq_', str(seq_number), '.h5',
+                    '---> Loading hallucinatio file: rgb_feat_seq_', str(seq_number), '.h5')
 
                 n_chunk, x_thermal_t, x_imu_t, y_t = load_odom_data(training_file, 'thermal')
                 n_chunk_feat, y_rgb_feat_t = load_hallucination_data(hallucination_file)
@@ -240,12 +246,25 @@ class DeeptioClient(fl.client.NumPyClient):
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
         # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
-        print(validation_files)
+        all_validation = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
+        all_hallucination = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
+        if self.index >= (cfg['loop_robot_data']['total_training'] / self.train_size):
+            print("client %s outbound, randmly select  %s from validation data" % (self.index, self.train_size))
+            np.random.seed(0)
+            random_index = np.random.choice(len(all_validation), self.val_size, replace=False)
+            validation_files = [all_validation[i] for i in random_index]
+            hallucination_val_files = [all_hallucination[i] for i in random_index]
+        else:
+            print("client %s select %s from validation data" % (self.index, self.val_size))
+            validation_files = all_validation[self.index*self.val_size:(self.index+1)*self.val_size]
+            hallucination_val_files = all_hallucination[self.index*self.val_size:(self.index+1)*self.val_size]
+
+
+        # validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
+        print('client id:', self.cid, 'validation files:', validation_files)
         # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
-        print(join(hallucination_dir, 'val', '*.h5'))
-        print(hallucination_val_files)
+        # hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
+        print('client id:', self.cid, 'hallucination validation files:', hallucination_val_files)
 
         x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
                                                                                                                     hallucination_val_files,
@@ -290,12 +309,12 @@ def get_evaluate_fn():
             n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
             IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
             # just use a few of it each, not all; the changes are on the index. 
-            validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[:1]
-            print(validation_files)
+            validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
+            # print(validation_files)
             # just use a few of it each, not all; the changes are on the index.
-            hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[:1]
-            print(join(hallucination_dir, 'val', '*.h5'))
-            print(hallucination_val_files)
+            hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
+            # print(join(hallucination_dir, 'val', '*.h5'))
+            # print(hallucination_val_files)
 
             x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
                                                                                                                         hallucination_val_files,
@@ -324,7 +343,7 @@ def get_evaluate_fn():
     return evaluate
 
 def main():
-    num_clients = 6
+    num_clients = 3
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 

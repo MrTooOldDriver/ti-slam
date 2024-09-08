@@ -8,7 +8,6 @@ import yaml
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-
 def main():
     # === Load configuration and list of training data ===
     with open(join(currentdir, 'config.yaml'), 'r') as f:

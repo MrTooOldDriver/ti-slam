@@ -1,7 +1,7 @@
 # Set 1
 nn_opt:
     tio_prob_params:
-        nn_name: neural_odometry_v2
+        nn_name: neural_odometry_v2_new_data
         imu_length: 20
         lr_rate: 0.0001
         rho: 0.9
@@ -12,7 +12,7 @@ nn_opt:
         flatten_rgb: 0
         n_mixture: 10
     loop_params:
-        nn_name: neural_loop_closure_v2
+        nn_name: neural_loop_closure_v2_new_data
         img_h: 512
         img_w: 640
         img_c: 1

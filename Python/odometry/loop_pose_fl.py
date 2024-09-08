@@ -89,9 +89,8 @@ class LoopPoseClient(fl.client.NumPyClient):
         self.model = model_setup()
         self.train_size = 3
         self.val_size = 1
-        global NUM_CLIENTS
-        self.index = NUM_CLIENTS
-        NUM_CLIENTS = NUM_CLIENTS + 1
+        self.index = int(cid)
+        print('cid:', self.cid, 'index:', self.index)
    
     def get_parameters(self, config):
         print("client "+ self.cid + " giving parameters to server")
@@ -115,13 +114,25 @@ class LoopPoseClient(fl.client.NumPyClient):
             dataroot = cfg['loop_handheld_data']['dataroot']
             loop_path = cfg['loop_handheld_data']['loop_path']
             all_experiments = cfg['loop_handheld_data']['all_exp_files']
-            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
+            if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+                np.random.seed(0)
+                training_experiments = np.random.choice(all_experiments[0:cfg['robot_data']['total_training']], self.train_size, replace=False)
+            else:
+                print("client %s select %s from training data" % (self.index, self.train_size))
+                training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
         else:
             dataroot = cfg['loop_robot_data']['dataroot']
             loop_path = cfg['loop_robot_data']['loop_path']
             all_experiments = cfg['loop_robot_data']['all_exp_files']
-            training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
+            if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+                np.random.seed(0)
+                training_experiments = np.random.choice(all_experiments[0:cfg['robot_data']['total_training']], self.train_size, replace=False)
+            else:
+                print("client %s select %s from training data" % (self.index, self.train_size))
+                training_experiments = all_experiments[self.index*self.train_size:(self.index+1)*self.train_size]
             n_training = len(training_experiments)
         
         MODEL_NAME = cfg['nn_opt']['loop_params']['nn_name']
@@ -150,7 +161,13 @@ class LoopPoseClient(fl.client.NumPyClient):
         # === Load validation poses ===
         # Validation files are the same with test file as we dont use it to learn any hyperparameters
         val_starting = cfg['loop_robot_data']['total_training']
-        validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size]
+        if self.index >= (cfg['robot_data']['total_training'] / self.train_size):
+            print("client %s outbound, randmly select  %s from validation data" % (self.index, self.val_size))
+            np.random.seed(0)
+            validation_experiments = np.random.choice(all_experiments[val_starting:], self.val_size, replace=False)
+        else:
+            print("client %s select %s from validation data" % (self.index, self.val_size))
+            validation_experiments = all_experiments[val_starting+self.index*self.val_size:val_starting+(self.index+1)*self.val_size] # dir/file names for validation
 
         x_val_img_1, x_val_img_2, y_val = load_validation_stack(loop_path, dataroot, validation_experiments, img_h, img_w, img_c)
         print('Validation size: ' + str(np.shape(x_val_img_1)) + ' - ' + str(np.shape(x_val_img_2)))    
@@ -303,18 +320,7 @@ def get_evaluate_fn():
 
 def main():
     num_clients = 6
-    # strategy = fl.server.strategy.FedAvg(
-    #     fraction_fit=1,  #
-    #     fraction_evaluate=1,  # 
-    #     min_fit_clients=1,  #
-    #     min_evaluate_clients=num_clients,  # 
-    #     min_available_clients=int(
-    #         num_clients * 1
-    #     ),  
-    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    # )
-    strategy = fl.server.strategy.FedTrimmedAvg(
+    strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
         min_fit_clients=1,  #
@@ -325,6 +331,17 @@ def main():
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
+    # strategy = fl.server.strategy.FedTrimmedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
     client_resources = {
         "num_gpus": 1,
         "num_cpus": 8

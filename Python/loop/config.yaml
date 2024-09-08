@@ -21,8 +21,8 @@ robot_data:
 
 # Set 2
 handheld_data:
-    dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/handeld/raw' # Replace with your data directory (handheld-raw folder)
-    loop_path: '/mnt/data/hantaozhong/ti_slam_dataset/handeld/loop' # Replace with your data directory (handheld-loop folder)
+    dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/raw' # Replace with your data directory (handheld-raw folder)
+    loop_path: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/loop' # Replace with your data directory (handheld-loop folder)
     total_training: 18 # 24 total, 18 train, 6 val
     gap: 5
     all_exp_files:
@@ -54,7 +54,7 @@ handheld_data:
 
 # Set 3
 mix_data:
-    dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/Mx/raw' # Replace with your data directory (handheld-raw folder)
+    dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/Mix/raw' # Replace with your data directory (handheld-raw folder)
     loop_path: '/mnt/data/hantaozhong/ti_slam_dataset/Mix/loop' # Replace with your data directory (handheld-loop folder)
     total_training: 18
     gap: 5
@@ -89,7 +89,7 @@ mix_data:
 training_opt:
     dataset: turtle #handheld
     thermal_params:
-        nn_name: neural_embedding_v2_new_data_single
+        nn_name: neural_embedding_v2_single
         lr_rate: 0.0001
         decay: 0.001
         margin_loss: 0.1
@@ -105,10 +105,12 @@ training_opt:
 os_test_embed:
     target_fpr: 0.2
     adjacent_frame: 18 # 6 frames per second
-    # model_name: neural_embedding_v2_6c_5ep_10r
+    model_name: neural_embedding_v2_6c_5ep_10r
     # model_name: neural_embedding_v2_single
-    model_name: neural_embedding_v2_6c_5ep_10r_FedTrimAvg
+    # model_name: neural_embedding_v2_6c_5ep_10r_FedTrimAvg
+    # model_name: neural_embedding_handheld
     dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/raw' # Replace with your data directory (handheld-raw folder)
+    # dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/raw' # Replace with your data directory (handheld-raw folder)
     exp_files:
         - 2019-10-24-17-55-21 # robot 27
         - 2019-10-24-17-53-58 # robot 28

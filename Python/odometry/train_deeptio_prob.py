@@ -86,7 +86,7 @@ def main():
     training_files = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
     n_training_files = len(training_files)
     # temp fix for training
-    start_idx = 1
+    start_idx = 12
     training_file_idx = np.arange(start_idx, start_idx + n_training_files)
     seq_len = np.arange(n_training_files)
 
