@@ -44,6 +44,8 @@ training_opt:
     rgb_feature_dir_turtle: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
     data_dir_handheld: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/odometry' # Replace with your data directory (odometry folder)
     rgb_feature_dir_handheld: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
+    data_dir_mix: '/mnt/data/hantaozhong/ti_slam_dataset/Mix/odometry' # Replace with your data directory (odometry folder)
+    rgb_feature_dir_mix: '/mnt/data/hantaozhong/ti_slam_dataset/Mix/odometry/rgb_features' # Replace with your data directory (RGB Feature folder)
     base_model_name: neural_odometry
     is_first_stage: 0 # False (0) or True (1), 1st stage to train hallucination. 2nd stage trains remaining.
 

@@ -99,6 +99,9 @@ class DeeptioClient(fl.client.NumPyClient):
         if(data_type=='turtle'):
             data_dir = cfg['training_opt']['data_dir_turtle']
             hallucination_dir = cfg['training_opt']['rgb_feature_dir_turtle']
+        elif(data_type=='mix'):
+            data_dir = cfg['training_opt']['data_dir_mix']
+            hallucination_dir = cfg['training_opt']['rgb_feature_dir_mix']
         else:
             data_dir = cfg['training_opt']['data_dir_handheld']
             hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']            
@@ -302,6 +305,9 @@ def get_evaluate_fn():
             if(data_type=='turtle'):
                 data_dir = cfg['training_opt']['data_dir_turtle']
                 hallucination_dir = cfg['training_opt']['rgb_feature_dir_turtle']
+            elif(data_type=='mix'):
+                data_dir = cfg['training_opt']['data_dir_mix']
+                hallucination_dir = cfg['training_opt']['rgb_feature_dir_mix']
             else:
                 data_dir = cfg['training_opt']['data_dir_handheld']
                 hallucination_dir = cfg['training_opt']['rgb_feature_dir_handheld']    
@@ -343,7 +349,7 @@ def get_evaluate_fn():
     return evaluate
 
 def main():
-    num_clients = 3
+    num_clients = 6
     strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
@@ -355,6 +361,18 @@ def main():
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
+    # strategy = fl.server.strategy.Bulyan(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     to_keep = False,
+    # )
     # strategy = fl.server.strategy.FedTrimmedAvg(
     #     fraction_fit=1,  #
     #     fraction_evaluate=1,  # 
