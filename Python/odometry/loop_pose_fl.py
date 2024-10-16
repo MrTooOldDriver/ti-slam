@@ -32,18 +32,35 @@ from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesI
 from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
+import random
 
 NUM_CLIENTS = 0
 NUM_ROUNDS = 2
 BEST_LOSS = 1000
+
+def set_seed(seed: int = 42) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.compat.v1.set_random_seed(0)
+    tf.experimental.numpy.random.seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
+
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c):
     # Reserve the validation stack data
     total_val_length = 0
     for i, validation_exp in enumerate(validation_exps):
         pose_data = get_pose_pairs(loop_path, validation_exp)
         total_val_length += len(pose_data)
-    x_image_1 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float16)
-    x_image_2 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_1 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_2 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float16)
+    x_image_1 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float32)
+    x_image_2 = np.zeros((total_val_length, 1, img_h, img_w, 3), dtype=np.float32)
     y_pose = np.zeros((total_val_length, 1, 6))
     print('Allocated validation data: ' + str(np.shape(x_image_1)) + ' - ' + str(np.shape(x_image_2)) + ' - ' + str(np.shape(y_pose)))
 
@@ -90,6 +107,7 @@ class LoopPoseClient(fl.client.NumPyClient):
         self.train_size = 3
         self.val_size = 1
         self.index = int(cid)
+        set_seed(0)
         print('cid:', self.cid, 'index:', self.index)
    
     def get_parameters(self, config):
@@ -189,8 +207,10 @@ class LoopPoseClient(fl.client.NumPyClient):
                 batch_iteration = int(data_length / batch_size) # For all positive pairs
                 for j in range(0, batch_iteration): # how many batch per sequences/exp
                     # Initialize training batches
-                    x_img_1 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float16)
-                    x_img_2 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float16)
+                    # x_img_1 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float16)
+                    # x_img_2 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float16)
+                    x_img_1 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float32)
+                    x_img_2 = np.zeros((batch_size, 1, img_h, img_w, 3), dtype=np.float32)
                     y_pose = np.zeros((batch_size, 1, 6))
                     # Get the image batch
                     for k in range(0, batch_size):
@@ -326,18 +346,7 @@ def get_evaluate_fn():
 
 def main():
     num_clients = 6
-    # strategy = fl.server.strategy.FedAvg(
-    #     fraction_fit=1,  #
-    #     fraction_evaluate=1,  # 
-    #     min_fit_clients=1,  #
-    #     min_evaluate_clients=num_clients,  # 
-    #     min_available_clients=int(
-    #         num_clients * 1
-    #     ),  
-    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    # )
-    strategy = fl.server.strategy.FedTrimmedAvg(
+    strategy = fl.server.strategy.FedAvg(
         fraction_fit=1,  #
         fraction_evaluate=1,  # 
         min_fit_clients=1,  #
@@ -348,6 +357,17 @@ def main():
         evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
         evaluate_fn=get_evaluate_fn(),  # global evaluation function
     )
+    # strategy = fl.server.strategy.FedTrimmedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
     client_resources = {
         "num_gpus": 1,
         "num_cpus": 8
@@ -371,4 +391,5 @@ def main():
 
 if __name__ == "__main__":
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))  
+    set_seed(0)
     main()

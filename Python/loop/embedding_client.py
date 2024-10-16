@@ -29,10 +29,25 @@ from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesI
 from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
+import random
 
 NUM_CLIENTS = 0 # dont touch
 NUM_ROUNDS = 2
 BEST_LOSS = 1000
+
+def set_seed(seed: int = 42) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.compat.v1.set_random_seed(0)
+    tf.experimental.numpy.random.seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
+
 def load_validation_stack(loop_path, dataroot, validation_exps, img_h, img_w, img_c, adjacent_frame):
     # Reserve the validation stack data
     total_val_length = 0
@@ -108,6 +123,7 @@ class EmbeddingClient(fl.client.NumPyClient):
         self.train_size = 3
         self.val_size = 1
         self.index = int(cid)
+        set_seed(0)
         print('cid:', self.cid, 'index:', self.index)
 
     # def get_parameters(self, config):
@@ -478,6 +494,7 @@ def main():
 if __name__ == "__main__":
     # Enable GPU growth in your main process
     enable_tf_gpu_growth()
+    set_seed(0)
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     main()
 
