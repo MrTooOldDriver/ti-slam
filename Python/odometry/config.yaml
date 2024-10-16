@@ -1,7 +1,7 @@
 # Set 1
 nn_opt:
     tio_prob_params:
-        nn_name: neural_odometry_v2_new_data
+        nn_name: neural_odometry_v2_single_new_loader
         imu_length: 20
         lr_rate: 0.0001
         rho: 0.9
@@ -12,7 +12,7 @@ nn_opt:
         flatten_rgb: 0
         n_mixture: 10
     loop_params:
-        nn_name: neural_loop_closure_v2_new_data
+        nn_name: neural_loop_closure_v2_single_new_loader
         img_h: 512
         img_w: 640
         img_c: 1
@@ -58,19 +58,32 @@ loop_robot_data:
     dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/raw'
     loop_path: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/loop'
     total_training: 9 # total 12, 9 train 3 val
+    # all_exp_files:
+    #     - 2019-10-24-18-08-33 # 12
+    #     - 2019-10-24-18-24-40
+    #     - 2019-10-24-18-21-18
+    #     - 2019-10-24-18-16-24 # 15
+    #     - 2019-10-24-18-13-21 
+    #     - 2019-10-24-18-11-06
+    #     - 2019-10-24-18-05-22
+    #     - 2019-10-24-18-03-57
+    #     - 2019-10-24-17-58-56 # 20
+    #     - 2019-10-24-17-57-46 # val start
+    #     - 2019-10-24-17-56-33
+    #     - 2019-10-24-18-18-47 # 23
     all_exp_files:
         - 2019-10-24-18-08-33 # 12
-        - 2019-10-24-18-24-40
-        - 2019-10-24-18-21-18
+        - 2019-10-24-18-24-40 # 13
+        - 2019-10-24-18-21-18 # 14
         - 2019-10-24-18-16-24 # 15
-        - 2019-10-24-18-13-21 
-        - 2019-10-24-18-11-06
-        - 2019-10-24-18-05-22
-        - 2019-10-24-18-03-57
+        - 2019-10-24-18-13-21 # 16
+        - 2019-10-24-18-11-06 # 17
+        - 2019-10-24-18-05-22 # 18
+        - 2019-10-24-18-03-57 # 19
         - 2019-10-24-17-58-56 # 20
-        - 2019-10-24-17-57-46 # val start
-        - 2019-10-24-17-56-33
-        - 2019-10-24-18-18-47 # 23
+        - 2019-10-24-17-55-21 # 27
+        - 2019-10-24-17-53-58 # 28
+        - 2019-10-24-18-06-56 # 29
 
 
 # Set 6
@@ -140,19 +153,26 @@ mix_data:
 loop_evaluation_opt:
     dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/raw'
     loop_pairs_path: 'results/'
-    loop_detection_network: 'neural_embedding_v2_6c_5ep_10r_FedTrimAvg'
+    # loop_detection_network: 'neural_embedding_v2_6c_5ep_10r_FedTrimAvg'
     # loop_detection_network: 'neural_embedding_v2_6c_5ep_10r'
-    # loop_detection_network: 'neural_embedding_v2_single'
+    loop_detection_network: 'neural_embedding_v2_single_fp32'
     loop_threshold: 0.045
-    model_name: neural_loop_closure_v2_6c_5e_10r_FedTrimAvg
+    model_name: neural_loop_closure_v2_single_fp32
     # model_name: neural_loop_closure_v2
-    exp_files:
-        - 2019-10-24-17-55-21 # robot 27
-        - 2019-10-24-17-53-58 # robot 28
-        - 2019-10-24-18-06-56 # robot 29
-        - 2019-10-24-17-51-58 # robot 30
+    # exp_files:
+    #     - 2019-10-24-17-55-21 # robot 27
+    #     - 2019-10-24-17-53-58 # robot 28
+    #     - 2019-10-24-18-06-56 # robot 29
+    #     - 2019-10-24-17-51-58 # robot 30
     # exp_files:
     #     - 2020-01-28-11-28-50 # handheld 35
     #     - 2020-01-28-11-34-05 # handheld 36
     #     - 2020-01-28-11-39-07 # handheld 37
     #     - 2020-01-28-11-55-54 # handheld 38
+    exp_files:
+        - 2019-10-24-17-57-46 # 21
+        - 2019-10-24-17-56-33 # 22
+        - 2019-10-24-18-18-47 # 23
+        - 2019-10-24-17-51-58 # 30
+
+

@@ -4,19 +4,32 @@ robot_data:
     dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/raw' # Replace with your data directory (robot-raw folder)
     loop_path: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/loop' # Replace with your data directory (robot-loop folder)
     total_training: 9 # total 12, 9 train 3 val
+    # all_exp_files:
+    #     - 2019-10-24-18-08-33 # 12
+    #     - 2019-10-24-18-24-40 # 13
+    #     - 2019-10-24-18-21-18 # 14
+    #     - 2019-10-24-18-16-24 # 15
+    #     - 2019-10-24-18-13-21 # 16
+    #     - 2019-10-24-18-11-06 # 17
+    #     - 2019-10-24-18-05-22 # 18
+    #     - 2019-10-24-18-03-57 # 19
+    #     - 2019-10-24-17-58-56 # 20
+    #     - 2019-10-24-17-57-46 # 21 val start
+    #     - 2019-10-24-17-56-33 # 22
+    #     - 2019-10-24-18-18-47 # 23
     all_exp_files:
         - 2019-10-24-18-08-33 # 12
-        - 2019-10-24-18-24-40
-        - 2019-10-24-18-21-18
+        - 2019-10-24-18-24-40 # 13
+        - 2019-10-24-18-21-18 # 14
         - 2019-10-24-18-16-24 # 15
-        - 2019-10-24-18-13-21 
-        - 2019-10-24-18-11-06
-        - 2019-10-24-18-05-22
-        - 2019-10-24-18-03-57
+        - 2019-10-24-18-13-21 # 16
+        - 2019-10-24-18-11-06 # 17
+        - 2019-10-24-18-05-22 # 18
+        - 2019-10-24-18-03-57 # 19
         - 2019-10-24-17-58-56 # 20
-        - 2019-10-24-17-57-46 # val start
-        - 2019-10-24-17-56-33
-        - 2019-10-24-18-18-47 # 23
+        - 2019-10-24-17-55-21 # 27
+        - 2019-10-24-17-53-58 # 28
+        - 2019-10-24-18-06-56 # 29
 
 
 # Set 2
@@ -89,7 +102,7 @@ mix_data:
 training_opt:
     dataset: turtle #handheld
     thermal_params:
-        nn_name: neural_embedding_v2_single
+        nn_name: neural_embedding_v2_single_new_loader
         lr_rate: 0.0001
         decay: 0.001
         margin_loss: 0.1
@@ -111,13 +124,18 @@ os_test_embed:
     # model_name: neural_embedding_handheld
     dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/In-house_ground_robot/raw' # Replace with your data directory (handheld-raw folder)
     # dataroot: '/mnt/data/hantaozhong/ti_slam_dataset/Handheld/raw' # Replace with your data directory (handheld-raw folder)
-    exp_files:
-        - 2019-10-24-17-55-21 # robot 27
-        - 2019-10-24-17-53-58 # robot 28
-        - 2019-10-24-18-06-56 # robot 29
-        - 2019-10-24-17-51-58 # robot 30
+    # exp_files:
+    #     - 2019-10-24-17-55-21 # robot 27
+    #     - 2019-10-24-17-53-58 # robot 28
+    #     - 2019-10-24-18-06-56 # robot 29
+    #     - 2019-10-24-17-51-58 # robot 30
     # exp_files:
     #     - 2020-01-28-11-28-50 # handheld 35
     #     - 2020-01-28-11-34-05 # handheld 36
     #     - 2020-01-28-11-39-07 # handheld 37
     #     - 2020-01-28-11-55-54 # handheld 38
+    exp_files:
+        - 2019-10-24-17-57-46 # 21
+        - 2019-10-24-17-56-33 # 22
+        - 2019-10-24-18-18-47 # 23
+        - 2019-10-24-17-51-58 # 30
