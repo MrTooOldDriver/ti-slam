@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python Debugger: Current File",
+        "type": "debugpy",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal",
+        "env": {
+          "CONDA_PREFIX": "/mnt/data/hantaozhong/conda_env/ti-slam",
+          "PATH": "/mnt/data/hantaozhong/conda_env/ti-slam/bin:${env:PATH}"
+        }
+      }
+    ]
+  }
