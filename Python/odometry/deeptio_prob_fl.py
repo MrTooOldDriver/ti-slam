@@ -3,9 +3,12 @@ Training deep Visual-Inertial odometry from pseudo ground truth
 """
 import gc
 import os
+
+from share_function import process_turtle_data
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+import random
 import shutil
 import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
@@ -39,10 +42,24 @@ from flwr.common import EvaluateIns, EvaluateRes, FitIns, FitRes, GetPropertiesI
 from flwr.common import Metrics
 from flwr.simulation.ray_transport.utils import enable_tf_gpu_growth
 from typing import Dict, List, Tuple
+from time_sqe_corresponding import corresponding
 
 NUM_CLIENTS = 0 # dont touch
 NUM_ROUNDS = 2
 BEST_LOSS = 1000
+
+def set_seed(seed: int = 42) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.compat.v1.set_random_seed(0)
+    tf.experimental.numpy.random.seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
 
 def model_setup():
     with open(join(currentdir, 'config.yaml'), 'r') as f:
@@ -76,6 +93,7 @@ class DeeptioClient(fl.client.NumPyClient):
         self.train_size = 3
         self.val_size = 1
         self.index = int(cid)
+        set_seed(0)
         print('cid:', self.cid, 'index:', self.index)
    
     def get_parameters(self, config):
@@ -122,13 +140,7 @@ class DeeptioClient(fl.client.NumPyClient):
         tensor_board = TensorBoard(log_dir=join(model_dir, 'logs'), histogram_freq=0)
         training_loss = []
 
-        # just use a few of it each, not all; the changes are on the index. 
-        validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
-        print(validation_files)
-        # just use a few of it each, not all; the changes are on the index.
-        hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))[self.val_size*self.index:self.val_size*(self.index+1)]
-        print(join(hallucination_dir, 'val', '*.h5'))
-        print(hallucination_val_files)
+        training_files, validation_files, hallucination_train_files, hallucination_val_files = process_turtle_data(data_type, cfg, data_dir, hallucination_dir)
 
         x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
                                                                                                                     hallucination_val_files,
@@ -139,29 +151,36 @@ class DeeptioClient(fl.client.NumPyClient):
         print('Final thermal validation shape:', np.shape(x_thermal_val_1), np.shape(y_val_t), np.shape(y_rgb_feat_val_t))
 
         # grap training files
-        all_training = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
-        if self.index >= (cfg['loop_robot_data']['total_training'] / self.train_size):
-                print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
-                np.random.seed(0)
-                training_files = np.random.choice(all_training[0:cfg['loop_robot_data']['total_training']], self.train_size, replace=False)
-        else:
-            print("client %s select %s from training data" % (self.index, self.train_size))
-            training_files = all_training[self.index*self.train_size:(self.index+1)*self.train_size]
+        # if self.index >= (cfg['loop_robot_data']['total_training'] / self.train_size):
+        #         print("client %s outbound, randmly select  %s from training data" % (self.index, self.train_size))
+        #         np.random.seed(0)
+        #         training_files = np.random.choice(all_training[0:cfg['loop_robot_data']['total_training']], self.train_size, replace=False)
+        # else:
+        #     print("client %s select %s from training data" % (self.index, self.train_size))
+        #     training_files = all_training[self.index*self.train_size:(self.index+1)*self.train_size]
+        training_files = training_files[self.index*self.train_size:(self.index+1)*self.train_size]
+        hallucination_train_files = hallucination_train_files[self.index*self.train_size:(self.index+1)*self.train_size]
 
-        training_files = all_training[self.index*self.train_size:(self.index+1)*self.train_size]
         n_training_files = len(training_files)
         seq_len = np.arange(n_training_files)
-        # raise Exception("stop here")
         print('client id:', self.cid, 'training files:', training_files)
 
         for e in range(0, 5):  #201
             print("|-----> epoch %d" % e)
+            # np.random.shuffle(training_files)
+            random_idx = np.arange(n_training_files)
+            np.random.shuffle(random_idx)
+            training_files = [training_files[i] for i in random_idx]
+            hallucination_train_files = [hallucination_train_files[i] for i in random_idx]
             for i in range(0, len(training_files)):
-                seq_number = training_files[i].split('_')[-1].split('.')[0]
-                training_file = data_dir + '/train/' + data_type + '_seq_' + str(seq_number) + '.h5'
-                hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(seq_number) + '.h5'
-                print('---> Loading training file: turtle_seq_', str(seq_number), '.h5',
-                    '---> Loading hallucinatio file: rgb_feat_seq_', str(seq_number), '.h5')
+                # seq_number = training_files[i].split('_')[-1].split('.')[0]
+                # training_file = data_dir + '/train/' + data_type + '_seq_' + str(seq_number) + '.h5'
+                # hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(seq_number) + '.h5'
+                # print('---> Loading training file: turtle_seq_', str(seq_number), '.h5',
+                #     '---> Loading hallucinatio file: rgb_feat_seq_', str(seq_number), '.h5')
+                training_file = training_files[i]
+                hallucination_file = hallucination_train_files[i]
+                print('---> Loading training file:', training_file, '---> Loading hallucinatio file:', hallucination_file)
 
                 n_chunk, x_thermal_t, x_imu_t, y_t = load_odom_data(training_file, 'thermal')
                 n_chunk_feat, y_rgb_feat_t = load_hallucination_data(hallucination_file)
@@ -249,8 +268,7 @@ class DeeptioClient(fl.client.NumPyClient):
         n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
         IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
         # just use a few of it each, not all; the changes are on the index. 
-        all_validation = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
-        all_hallucination = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
+        training_files, all_validation, hallucination_train_files, all_hallucination = process_turtle_data(data_type, cfg, data_dir, hallucination_dir)
         if self.index >= (cfg['loop_robot_data']['total_training'] / self.train_size):
             print("client %s outbound, randmly select  %s from validation data" % (self.index, self.train_size))
             np.random.seed(0)
@@ -297,7 +315,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with tf.device('/gpu:6'):
+        with tf.device('/gpu:0'):
             with open(join(currentdir, 'config.yaml'), 'r') as f:
                 cfg = yaml.safe_load(f)
             # Training setting
@@ -315,12 +333,8 @@ def get_evaluate_fn():
             n_mixture = cfg['nn_opt']['tio_prob_params']['n_mixture']
             IMU_LENGTH = cfg['nn_opt']['tio_prob_params']['imu_length']
             # just use a few of it each, not all; the changes are on the index. 
-            validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
-            # print(validation_files)
-            # just use a few of it each, not all; the changes are on the index.
-            hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
-            # print(join(hallucination_dir, 'val', '*.h5'))
-            # print(hallucination_val_files)
+
+            training_files, validation_files, hallucination_train_files, hallucination_val_files = process_turtle_data(data_type, cfg, data_dir, hallucination_dir)
 
             x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
                                                                                                                         hallucination_val_files,
@@ -349,18 +363,18 @@ def get_evaluate_fn():
     return evaluate
 
 def main():
-    num_clients = 6
-    strategy = fl.server.strategy.FedAvg(
-        fraction_fit=1,  #
-        fraction_evaluate=1,  # 
-        min_fit_clients=1,  #
-        min_evaluate_clients=num_clients,  # 
-        min_available_clients=int(
-            num_clients * 1
-        ),  
-        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-        evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    )
+    num_clients = 3
+    # strategy = fl.server.strategy.FedAvg(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    # )
     # strategy = fl.server.strategy.Bulyan(
     #     fraction_fit=1,  #
     #     fraction_evaluate=1,  # 
@@ -373,24 +387,24 @@ def main():
     #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
     #     to_keep = False,
     # )
-    # strategy = fl.server.strategy.FedTrimmedAvg(
-    #     fraction_fit=1,  #
-    #     fraction_evaluate=1,  # 
-    #     min_fit_clients=1,  #
-    #     min_evaluate_clients=num_clients,  # 
-    #     min_available_clients=int(
-    #         num_clients * 1
-    #     ),  
-    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    # )
+    strategy = fl.server.strategy.FedTrimmedAvg(
+        fraction_fit=1,  #
+        fraction_evaluate=1,  # 
+        min_fit_clients=1,  #
+        min_evaluate_clients=num_clients,  # 
+        min_available_clients=int(
+            num_clients * 1
+        ),  
+        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+        evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    )
     client_resources = {
         "num_gpus": 1,
         "num_cpus": 8
     }
     ray_init_args = {
         "num_cpus": 56,
-        "num_gpus": 6
+        "num_gpus": 4
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
@@ -407,5 +421,6 @@ def main():
 
 if __name__ == "__main__":
     enable_tf_gpu_growth()
+    set_seed(0)
     print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
     main()

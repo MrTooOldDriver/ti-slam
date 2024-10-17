@@ -3,6 +3,8 @@ Training deep Visual-Inertial odometry from pseudo ground truth
 """
 
 import os
+
+from time_sqe_corresponding import corresponding
 os.environ['KERAS_BACKEND']='tensorflow'
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -28,6 +30,20 @@ from tensorflow.compat.v1.keras.callbacks import TensorBoard, ModelCheckpoint
 import tensorflow as tf
 tf.compat.v1.disable_eager_execution()
 tf.compat.v1.experimental.output_all_intermediates(True)
+import random
+
+def set_seed(seed: int = 42) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
+    tf.compat.v1.set_random_seed(0)
+    tf.experimental.numpy.random.seed(seed)
+    # When running on the CuDNN backend, two further options must be set
+    os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+    os.environ['TF_DETERMINISTIC_OPS'] = '1'
+    # Set a fixed value for the hash seed
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    print(f"Random seed set as {seed}")
 
 def main():
     print('For thermal-IMU ONLY!')
@@ -67,12 +83,61 @@ def main():
     tensor_board = TensorBoard(log_dir=join(model_dir, 'logs'), histogram_freq=0)
     training_loss = []
 
-    validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
-    print(validation_files)
+    if data_type == 'turtle':
+        all_exp_files = cfg['loop_robot_data']['all_exp_files']
+        total_training = cfg['loop_robot_data']['total_training']
+        train_time = all_exp_files[:total_training]
+        val_time = all_exp_files[total_training:]
+        corresponding_class = corresponding()
+        train_seq = corresponding_class.time_list_to_seq(train_time)
+        print('Train seq:', train_seq)
+        val_seq = corresponding_class.time_list_to_seq(val_time)
+        print('Val seq:', val_seq)
 
-    hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
-    print(join(hallucination_dir, 'val', '*.h5'))
-    print(hallucination_val_files)
+        all_data_h5_files = sorted(glob.glob(join(data_dir, '*', '*.h5')))
+        all_hallucination_files = sorted(glob.glob(join(hallucination_dir, '*', '*.h5')))
+
+        training_files = []
+        validation_files = []
+        hallucination_train_files = []
+        hallucination_val_files = []
+        # select data h5 files based on train seq
+        for train_seq_num in train_seq:
+            key = 'seq_' + str(train_seq_num)
+            for data_h5_file in all_data_h5_files:
+                if key in data_h5_file:
+                    training_files.append(data_h5_file)
+                    break
+            for hallucination_file in all_hallucination_files:
+                if key in hallucination_file:
+                    hallucination_train_files.append(hallucination_file)
+                    break
+        
+        # select data h5 files based on val seq
+        for val_seq_num in val_seq:
+            key = 'seq_' + str(val_seq_num)
+            for data_h5_file in all_data_h5_files:
+                if key in data_h5_file:
+                    validation_files.append(data_h5_file)
+                    break
+            for hallucination_file in all_hallucination_files:
+                if key in hallucination_file:
+                    hallucination_val_files.append(hallucination_file)
+                    break
+    else:
+        raise ValueError('Invalid data type')
+    
+    
+    # validation_files = sorted(glob.glob(join(data_dir, 'test', '*.h5')))
+    # print(validation_files)
+
+    # hallucination_val_files = sorted(glob.glob(join(hallucination_dir, 'val', '*.h5')))
+    # print(join(hallucination_dir, 'val', '*.h5'))
+
+    print('Training files:', training_files)
+    print('Validation files:', validation_files)
+    print('Hallucination training files:', hallucination_train_files)
+    print('Hallucination validation files:', hallucination_val_files)
 
     x_thermal_val_1, x_thermal_val_2, x_imu_val_t, y_val_t, y_rgb_feat_val_t = odom_validation_stack_hallucination(validation_files,
                                                                                                                    hallucination_val_files,
@@ -83,22 +148,29 @@ def main():
     print('Final thermal validation shape:', np.shape(x_thermal_val_1), np.shape(y_val_t), np.shape(y_rgb_feat_val_t))
 
     # grap training files
-    training_files = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
+    # training_files = sorted(glob.glob(join(data_dir, 'train', '*.h5')))
     n_training_files = len(training_files)
     # temp fix for training
-    start_idx = 12
-    training_file_idx = np.arange(start_idx, start_idx + n_training_files)
+    # start_idx = 12
+    # training_file_idx = np.arange(start_idx, start_idx + n_training_files)
     seq_len = np.arange(n_training_files)
 
     for e in range(51):
         print("|-----> epoch %d" % e)
-        np.random.shuffle(seq_len)
-        for i in range(0, n_training_files):
+        # np.random.shuffle(training_files)
+        random_idx = np.arange(n_training_files)
+        np.random.shuffle(random_idx)
+        training_files = [training_files[i] for i in random_idx]
+        hallucination_train_files = [hallucination_train_files[i] for i in random_idx]
+        for i in range(0, len(training_files)):
 
-            training_file = data_dir + '/train/' + data_type + '_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
-            hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
-            print('---> Loading training file: turtle_seq_', str(training_file_idx[seq_len[i]]), '.h5',
-                  '---> Loading hallucinatio file: rgb_feat_seq_', str(training_file_idx[seq_len[i]]), '.h5')
+            # training_file = data_dir + '/train/' + data_type + '_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
+            # hallucination_file = hallucination_dir + '/train/rgb_feat_seq_' + str(training_file_idx[seq_len[i]]) + '.h5'
+            # print('---> Loading training file: turtle_seq_', str(training_file_idx[seq_len[i]]), '.h5',
+                #   '---> Loading hallucinatio file: rgb_feat_seq_', str(training_file_idx[seq_len[i]]), '.h5')
+            training_file = training_files[i]
+            hallucination_file = hallucination_train_files[i]
+            print('---> Loading training file:', training_file, '---> Loading hallucinatio file:', hallucination_file)
 
             n_chunk, x_thermal_t, x_imu_t, y_t = load_odom_data(training_file, 'thermal')
             n_chunk_feat, y_rgb_feat_t = load_hallucination_data(hallucination_file)
@@ -184,8 +256,9 @@ def main():
     with open(join(model_dir, 'nn_opt.json'), 'w') as fp:
         json.dump(cfg['nn_opt']['tio_prob_params'], fp)
 
-    print('Finished training ', str(n_training_files), ' trajectory!')
+    print('Finished training ', str(training_files), ' trajectory!')
 
 if __name__ == "__main__":
     os.system("hostname")
+    set_seed(0)
     main()

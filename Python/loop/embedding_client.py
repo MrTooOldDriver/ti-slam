@@ -329,7 +329,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with tf.device('/gpu:6'):
+        with tf.device('/gpu:3'):
             with open(join(currentdir, 'config.yaml'), 'r') as f:
                 cfg = yaml.safe_load(f)
 
@@ -375,7 +375,7 @@ def get_evaluate_fn():
             x_1 = tf.convert_to_tensor(validation_triplets[0], np.float32)
             x_2 = tf.convert_to_tensor(validation_triplets[1], np.float32)
             x_3 = tf.convert_to_tensor(validation_triplets[2], np.float32)
-        with tf.device('/gpu:6'):
+        with tf.device('/gpu:3'):
             loss = model.evaluate(x=[x_1, x_2, x_3], y=None, batch_size=32)
         print("server round "+ str(server_round))
         global BEST_LOSS
@@ -432,18 +432,18 @@ def main():
     #     initial_parameters = model_params
     # )
 
-    strategy = fl.server.strategy.Bulyan(
-        fraction_fit=1,  #
-        fraction_evaluate=1,  # 
-        min_fit_clients=1,  #
-        min_evaluate_clients=num_clients,  # 
-        min_available_clients=int(
-            num_clients * 1
-        ),  
-        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-        evaluate_fn=get_evaluate_fn(),  # global evaluation function
-        to_keep = False,
-    )
+    # strategy = fl.server.strategy.Bulyan(
+    #     fraction_fit=1,  #
+    #     fraction_evaluate=1,  # 
+    #     min_fit_clients=1,  #
+    #     min_evaluate_clients=num_clients,  # 
+    #     min_available_clients=int(
+    #         num_clients * 1
+    #     ),  
+    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    #     to_keep = False,
+    # )
 
     # strategy = fl.server.strategy.FedProx(
     #     fraction_fit=1,  #
@@ -458,17 +458,17 @@ def main():
     #     proximal_mu = 0.001
     # )
 
-    # strategy = fl.server.strategy.FedTrimmedAvg(
-    #     fraction_fit=1,  #
-    #     fraction_evaluate=1,  # 
-    #     min_fit_clients=1,  #
-    #     min_evaluate_clients=num_clients,  # 
-    #     min_available_clients=int(
-    #         num_clients * 1
-    #     ),  
-    #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-    #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    # )
+    strategy = fl.server.strategy.FedTrimmedAvg(
+        fraction_fit=1,  #
+        fraction_evaluate=1,  # 
+        min_fit_clients=1,  #
+        min_evaluate_clients=num_clients,  # 
+        min_available_clients=int(
+            num_clients * 1
+        ),  
+        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+        evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    )
 
     client_resources = {
         "num_gpus": 1,
@@ -476,7 +476,7 @@ def main():
     }
     ray_init_args = {
         "num_cpus": 56,
-        "num_gpus": 6
+        "num_gpus": 3
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),

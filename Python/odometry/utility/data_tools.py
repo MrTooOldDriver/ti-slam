@@ -60,8 +60,10 @@ def load_eval_data(dataroot, loop_path, eval_exp, img_h, img_w, img_c):
         pose_data = [line[:-1] for line in pose_file]
     eval_length = len(pose_data)
 
-    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
-    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
+    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
 
     img_root_path = dataroot + '/' + eval_exp + '/thermal/'
     for j in range(eval_length):
@@ -89,8 +91,10 @@ def load_eval_data_from_neuloop(dataroot, loop_path, net_name, eval_exp, thres, 
     with open(img_name_path, 'r') as sensor_file:
         sensor_lines = [line[:-1] for line in sensor_file]
 
-    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
-    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
+    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
 
     loop_data_complete = []
     img_root_path = dataroot + '/' + eval_exp + '/thermal/'
@@ -126,8 +130,10 @@ def load_eval_data_from_neuloop_subt(dataroot, loop_path, net_name, eval_exp, th
     with open(img_name_path, 'r') as sensor_file:
         sensor_lines = [line[:-1] for line in sensor_file]
 
-    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
-    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
+    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
 
     loop_data_complete = []
     img_root_path = dataroot + '/' + eval_exp + '/thermal/'
@@ -163,8 +169,10 @@ def load_eval_data_from_neuloop_washington(dataroot, loop_path, net_name, eval_e
     with open(img_name_path, 'r') as sensor_file:
         sensor_lines = [line[:-1] for line in sensor_file]
 
-    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
-    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    # x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float16)
+    x_image_1 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
+    x_image_2 = np.zeros((eval_length, 1, img_h, img_w, 3), dtype=np.float32)
 
     gap = 3.5
     loop_data_complete = []

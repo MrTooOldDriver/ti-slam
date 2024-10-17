@@ -297,7 +297,7 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
 def get_evaluate_fn():
     def evaluate(server_round, parameters, config):
-        with tf.device('/gpu:6'):
+        with tf.device('/gpu:3'):
             # === Load configuration and list of training data ===
             with open(join(currentdir, 'config.yaml'), 'r') as f:
                 cfg = yaml.safe_load(f)        
@@ -345,19 +345,8 @@ def get_evaluate_fn():
 
 
 def main():
-    num_clients = 6
-    strategy = fl.server.strategy.FedAvg(
-        fraction_fit=1,  #
-        fraction_evaluate=1,  # 
-        min_fit_clients=1,  #
-        min_evaluate_clients=num_clients,  # 
-        min_available_clients=int(
-            num_clients * 1
-        ),  
-        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
-        evaluate_fn=get_evaluate_fn(),  # global evaluation function
-    )
-    # strategy = fl.server.strategy.FedTrimmedAvg(
+    num_clients = 3
+    # strategy = fl.server.strategy.FedAvg(
     #     fraction_fit=1,  #
     #     fraction_evaluate=1,  # 
     #     min_fit_clients=1,  #
@@ -368,13 +357,24 @@ def main():
     #     evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
     #     evaluate_fn=get_evaluate_fn(),  # global evaluation function
     # )
+    strategy = fl.server.strategy.FedTrimmedAvg(
+        fraction_fit=1,  #
+        fraction_evaluate=1,  # 
+        min_fit_clients=1,  #
+        min_evaluate_clients=num_clients,  # 
+        min_available_clients=int(
+            num_clients * 1
+        ),  
+        evaluate_metrics_aggregation_fn=weighted_average,  # aggregates federated metrics
+        evaluate_fn=get_evaluate_fn(),  # global evaluation function
+    )
     client_resources = {
         "num_gpus": 1,
         "num_cpus": 8
     }
     ray_init_args = {
         "num_cpus": 56,
-        "num_gpus": 6
+        "num_gpus": 3
     }
     fl.simulation.start_simulation(
         client_fn=get_client_fn(),
